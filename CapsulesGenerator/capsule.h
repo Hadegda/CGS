@@ -19,6 +19,13 @@ struct cbCapsule
 	DirectX::XMFLOAT4 color;
 };
 
+struct caps
+{
+	DirectX::XMFLOAT3 p0;  //start point
+	DirectX::XMFLOAT3 p1;  //finish point
+	float r;               //radius
+};
+
 class Capsule {
 public:
 	bool Init(float r1/*, float r2*/, float length, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{-1.0f, -1.0f, -1.0f});
