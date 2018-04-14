@@ -19,12 +19,6 @@ struct cbCapsule
 	DirectX::XMFLOAT4 color;
 };
 
-struct cbCapsule1
-{
-	DirectX::XMMATRIX mWorld;
-	DirectX::XMFLOAT4 color;
-};
-
 class Capsule {
 public:
 	bool Init(float r1/*, float r2*/, float length, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{-1.0f, -1.0f, -1.0f});
