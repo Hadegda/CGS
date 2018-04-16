@@ -161,6 +161,7 @@
     <ClCompile Include="GeneticAlgorithm.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="md2Model.cpp" />
+    <ClCompile Include="personPattern.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="singleton.cpp" />
     <ClCompile Include="skeleton.cpp" />
@@ -173,6 +174,7 @@
     <ClInclude Include="device.h" />
     <ClInclude Include="GeneticAlgorithm.h" />
     <ClInclude Include="md2Model.h" />
+    <ClInclude Include="personPattern.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="singleton.h" />

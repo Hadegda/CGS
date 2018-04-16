@@ -31,11 +31,13 @@ public:
 	Capsule(DirectX::XMFLOAT3 color);
 	~Capsule();
 
+	DirectX::XMFLOAT4 p0;  //start point; radius
+	DirectX::XMFLOAT4 p1;  //finish point; radius
+
 private:
 	DirectX::XMFLOAT3 color;
 
-	DirectX::XMFLOAT4 p0;  //start point; radius
-	DirectX::XMFLOAT4 p1;  //finish point; radius
+	
 
 	bool CreateBuffers();
 	ID3D11Buffer* pCapsVertices;
