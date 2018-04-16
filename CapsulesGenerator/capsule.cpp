@@ -2,6 +2,9 @@
 #include "device.h"
 #include <cmath>
 
+#define Float3Length(a) (sqrt(a.x*a.x + a.y*a.y + a.z*a.z))
+#define Float3Substruct(a, b) (XMFLOAT3(a.x-b.x, a.y-b.y, a.z-b.z))
+
 using namespace DirectX;
 
 int const Capsule::nVertSeg = 16;
@@ -15,24 +18,40 @@ std::vector<WORD> Capsule::indices;
 
 bool Capsule::wasStaticInit = false;
 
-bool Capsule::Init(float r1/*, float r2*/, float length, XMFLOAT3 color)
+Capsule::Capsule(DirectX::XMFLOAT3 color)
 {
-	float r2 = r1;
-	if(color.x >= 0)
+	pCapsVertices = NULL;
+	pCapsIndices = NULL;
+	pCapsCBuffer = NULL;
+
+	this->color = color;
+
+	if (!wasStaticInit)
+		InitStatic();
+}
+
+bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
+{
+	this->p0 = p0;
+	this->p1 = p1;
+	if (color.x >= 0)
 		this->color = color;
+
+	XMFLOAT3 vec = Float3Substruct(p1, p0);
+	float length = Float3Length(vec);
+	float r = p0.w;
 
 	HRESULT hr = S_OK;
 
 	caps_vertex vertices[2 * nVertSeg * nUpHalfSeg + 2];
-
 	for (int i = 0; i < nVertSeg; i++) {
 		for (int j = 0; j < nUpHalfSeg; j++) {
-			vertices[2 * nUpHalfSeg * i + j] = { XMFLOAT3{ r1 * xCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], r1 * zCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], -r1 * yCoords[nUpHalfSeg - 1 - j] } };
-			vertices[2 * nUpHalfSeg * i + nUpHalfSeg + nUpHalfSeg - 1 - j] = { XMFLOAT3{ r2 * xCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], r2 * zCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], length + r2 * yCoords[nUpHalfSeg - 1 - j] } };
+			vertices[2 * nUpHalfSeg * i + j] = { XMFLOAT3{ r * xCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], r * zCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], -r * yCoords[nUpHalfSeg - 1 - j] } };
+			vertices[2 * nUpHalfSeg * i + nUpHalfSeg + nUpHalfSeg - 1 - j] = { XMFLOAT3{ r * xCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], r * zCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], length + r * yCoords[nUpHalfSeg - 1 - j] } };
 		}
 	}
-	vertices[2 * nVertSeg * nUpHalfSeg] = { XMFLOAT3{ 0, 0, -r1 } };
-	vertices[2 * nVertSeg * nUpHalfSeg + 1] = { XMFLOAT3{ 0, 0, length + r2 } };
+	vertices[2 * nVertSeg * nUpHalfSeg] = { XMFLOAT3{ 0, 0, -r } };
+	vertices[2 * nVertSeg * nUpHalfSeg + 1] = { XMFLOAT3{ 0, 0, length + r } };
 
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
@@ -142,6 +161,24 @@ void Capsule::InitStatic()
 	wasStaticInit = true;
 }
 
+XMMATRIX Rotation(XMFLOAT3 rotate) {
+	if (Float3Length(rotate) != 0) {
+		XMVECTOR newZaxis = XMVector4Normalize(XMVectorSet(rotate.x, rotate.y, rotate.z, 0.0f));
+		XMVECTOR angleZ = XMVector3AngleBetweenVectors(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), newZaxis);
+		float angleZRadians = XMVectorGetX(angleZ);
+		XMVECTOR proj;
+		XMVECTOR perp;
+		XMVector3ComponentsFromNormal(&proj, &perp, newZaxis, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
+		XMVECTOR angleY = XMVector3AngleBetweenVectors(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), perp);
+		float angleYRadians = XMVectorGetX(angleY);
+		if (rotate.y < 0)
+			angleYRadians *= -1;
+
+		return XMMatrixRotationY(angleZRadians) * XMMatrixRotationZ(angleYRadians);
+	}
+	return XMMatrixIdentity();
+}
+
 void Capsule::DrawCaps(XMFLOAT4X4 mWorld, float light, float transparency, int nCapsule)
 {
 	UINT stride = sizeof(caps_vertex);
@@ -168,23 +205,27 @@ void Capsule::DrawCaps(XMFLOAT4X4 mWorld, float light, float transparency, int n
 		if (nCapsule == 9 || nCapsule == 12)
 			cb.color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.01f * transparency);
 	}
-	cb.mWorld = XMMatrixTranspose(XMLoadFloat4x4(&mWorld));
+
+	XMMATRIX gm = XMLoadFloat4x4(&mWorld);
+	XMFLOAT3 rot = Float3Substruct(p1, p0);
+	gm = Rotation(rot) * XMMatrixTranslation(p0.x, p0.y, p0.z) * gm;
+
+	cb.mWorld = XMMatrixTranspose(gm);
 	RendererCore::Get()->GetDeviceContext()->UpdateSubresource(pCapsCBuffer, 0, NULL, &cb, 0, 0);
 	RendererCore::Get()->GetDeviceContext()->VSSetConstantBuffers(1, 1, &pCapsCBuffer);
 
 	RendererCore::Get()->GetDeviceContext()->DrawIndexed(indices.size(), 0, 0);
 }
 
-Capsule::Capsule(DirectX::XMFLOAT3 color)
+#define SphereVolume(r) ((4.0f / 3.0f) * XM_PI *r*r*r)
+#define CylinderVolume(r, h) (h * XM_PI *r*r)
+
+float Capsule::GetVolume()
 {
-	pCapsVertices = NULL;
-	pCapsIndices = NULL;
-	pCapsCBuffer = NULL;
+	XMFLOAT3 vec = Float3Substruct(p1, p0);
+	float length = Float3Length(vec);
 
-	this->color = color;
-
-	if(!wasStaticInit)
-		InitStatic();
+	return SphereVolume(p0.w) + CylinderVolume(p0.w, length);
 }
 
 Capsule::~Capsule()

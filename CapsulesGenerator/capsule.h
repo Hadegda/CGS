@@ -19,27 +19,25 @@ struct cbCapsule
 	DirectX::XMFLOAT4 color;
 };
 
-struct caps
-{
-	DirectX::XMFLOAT3 p0;  //start point
-	DirectX::XMFLOAT3 p1;  //finish point
-	float r;               //radius
-};
-
 class Capsule {
 public:
-	bool Init(float r1/*, float r2*/, float length, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{-1.0f, -1.0f, -1.0f});
+	//bool Init(float r1/*, float r2*/, float length, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{-1.0f, -1.0f, -1.0f});
+	bool Init(DirectX::XMFLOAT4 p0, DirectX::XMFLOAT4 p1, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{ -1.0f, 0.0f, 0.0f });
 	static void InitStatic();
 	void DrawCaps(DirectX::XMFLOAT4X4 mWorld, float light, float transparency, int nCapsule = -1);
+
+	float GetVolume();
 
 	Capsule(DirectX::XMFLOAT3 color);
 	~Capsule();
 
-
 private:
 	DirectX::XMFLOAT3 color;
-	bool CreateBuffers();
 
+	DirectX::XMFLOAT4 p0;  //start point; radius
+	DirectX::XMFLOAT4 p1;  //finish point; radius
+
+	bool CreateBuffers();
 	ID3D11Buffer* pCapsVertices;
 	ID3D11Buffer* pCapsIndices;
 	ID3D11Buffer* pCapsCBuffer;

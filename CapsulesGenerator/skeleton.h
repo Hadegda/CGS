@@ -77,10 +77,7 @@ private:
 	PartOfBody rightArm2;
 	PartOfBody head;
 
-	std::vector<std::vector<VertInCaps>> vertices;
-
 	std::vector<Capsule*> caps;
-	std::vector<Capsule*> capsInObjSpace;
 };
 
 #endif

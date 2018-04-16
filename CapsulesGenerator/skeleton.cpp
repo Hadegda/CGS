@@ -243,66 +243,25 @@ void Skeleton::CreateCaps(){
 		caps[i] = new Capsule(color);
 	}
 
-	caps[0]->Init(torso.radius, torso.partOfBody.w, XMFLOAT3{ -1.0f, 0.0f, 0.0f });
-	caps[1]->Init(leftLeg0.radius, leftLeg0.partOfBody.w, XMFLOAT3{ -1.0f, 1.0f, 1.0f });
-	caps[2]->Init(leftLeg1.radius, leftLeg1.partOfBody.w, XMFLOAT3{ -1.0f, 0.5f, 1.0f });
-	caps[3]->Init(leftLeg2.radius, leftLeg2.partOfBody.w, XMFLOAT3{ -1.0f, 0.5f, 1.0f });
-	caps[4]->Init(rightLeg0.radius, rightLeg0.partOfBody.w, XMFLOAT3{ -1.0f, 0.0f, 1.0f });
-	caps[5]->Init(rightLeg1.radius, rightLeg1.partOfBody.w, XMFLOAT3{ -0.5f, 0.0f, 1.0f });
-	caps[6]->Init(rightLeg2.radius, rightLeg2.partOfBody.w, XMFLOAT3{ -0.5f, 0.0f, 1.0f });
-	caps[7]->Init(leftArm0.radius, leftArm0.partOfBody.w, XMFLOAT3{ -0.7f, 1.0f, 0.3f });
-	caps[8]->Init(leftArm1.radius, leftArm1.partOfBody.w, XMFLOAT3{ -0.9f, 1.0f, 0.1f });
-	caps[9]->Init(leftArm2.radius, leftArm2.partOfBody.w, XMFLOAT3{ -0.9f, 1.0f, 0.1f });
-	caps[10]->Init(rightArm0.radius, rightArm0.partOfBody.w, XMFLOAT3{ -0.3f, 1.0f, 0.7f });
-	caps[11]->Init(rightArm1.radius, rightArm1.partOfBody.w, XMFLOAT3{ -0.1f, 1.0f, 0.9f });
-	caps[12]->Init(rightArm2.radius, rightArm2.partOfBody.w, XMFLOAT3{ -0.1f, 1.0f, 0.9f });
-	caps[13]->Init(head.radius, head.partOfBody.w, XMFLOAT3{ -1.0f, 1.0f, 0.0f });
+	DirectX::XMFLOAT4* capsules;
+	capsules = new DirectX::XMFLOAT4[28];
 
-	//capsInObjSpace
+	CapsulesInObjSys(&capsules);
+
+	for(int i = 0; i < 14; i++)
+		caps[i]->Init(capsules[2*i], capsules[2*i+1]);
+
+	delete[] capsules;
 }
 
 void Skeleton::DistributeVertices() {
 	
 }
 
-XMMATRIX Rotation(XMFLOAT4 rotate, XMMATRIX* returnRot) {
-	if (rotate.x*rotate.x + rotate.y*rotate.y + rotate.z*rotate.z != 0) {
-		XMVECTOR newZaxis = XMVector4Normalize(XMVectorSet(rotate.x, rotate.y, rotate.z, 0.0f));
-		XMVECTOR angleZ = XMVector3AngleBetweenVectors(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), newZaxis);
-		float angleZRadians = XMVectorGetX(angleZ);
-		XMVECTOR proj; 
-		XMVECTOR perp; 
-		XMVector3ComponentsFromNormal(&proj, &perp, newZaxis, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
-		XMVECTOR angleY = XMVector3AngleBetweenVectors(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), perp);
-		float angleYRadians = XMVectorGetX(angleY);
-		if (rotate.y < 0)
-			angleYRadians *= -1;
-		
-		*returnRot = XMMatrixRotationZ(-angleYRadians) * XMMatrixRotationY(-angleZRadians);
-		return XMMatrixRotationY(angleZRadians) * XMMatrixRotationZ(angleYRadians);
-	}
-	*returnRot = XMMatrixIdentity();
-	return XMMatrixIdentity();
-}
-
 void Skeleton::DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency)
 {
-	DirectX::XMFLOAT4* capsules;
-	capsules = new DirectX::XMFLOAT4[28];
-
-	CapsulesInObjSys(&capsules);
-
-	XMFLOAT4X4 mWorld;
-	XMStoreFloat4x4(&mWorld, XMMatrixMultiply(XMLoadFloat4x4(&world), XMMatrixIdentity()));
-
-	XMMATRIX retgm;
-	for (int i = 0; i < 28; i+=2) {
-		XMMATRIX gm = XMLoadFloat4x4(&world);
-		XMFLOAT4 rot = XMFLOAT4(capsules[i + 1].x - capsules[i].x, capsules[i + 1].y - capsules[i].y, capsules[i + 1].z - capsules[i].z, 1.0f);
-		gm = Rotation(rot, &retgm) * XMMatrixTranslation(capsules[i].x, capsules[i].y, capsules[i].z) * gm;
-		XMStoreFloat4x4(&mWorld, gm);
-		caps[i/2]->DrawCaps(mWorld, light, transparency, i / 2);
-	}
+	for (int i = 0; i < caps.size(); i++)
+		caps[i]->DrawCaps(world, light, transparency, i);
 }
 
 Skeleton::Skeleton(DirectX::XMFLOAT3 color)
@@ -311,12 +270,6 @@ Skeleton::Skeleton(DirectX::XMFLOAT3 color)
 	caps.resize(14);
 	for (int i = 0; i < caps.size(); i++)
 		caps[i] = nullptr;
-
-	vertices.clear();
-	vertices.resize(caps.size());
-	for (int i = 0; i < vertices.size(); i++) {
-		vertices[i].clear();
-	}
 
 	this->color = color;
 
@@ -388,38 +341,12 @@ Skeleton::~Skeleton()
 	delete[] parameters;
 }
 
-float SphereVolume(float r) {
-	return (4.0f/3.0f) * XM_PI *r*r*r;
-}
-
-float CylinderVolume(float r, float h) {
-	return h * XM_PI *r*r;
-}
-
 float Skeleton::GetVolume() {
 	float volume = 0.0f;
+	for (int i = 0; i < caps.size(); i++)
+		volume += caps[i]->GetVolume();
 
-	volume += SphereVolume(torso.radius) + CylinderVolume(torso.radius, torso.partOfBody.w);
-
-	volume += SphereVolume(leftLeg0.radius) + CylinderVolume(leftLeg0.radius, leftLeg0.partOfBody.w);
-	volume += SphereVolume(leftLeg1.radius) + CylinderVolume(leftLeg1.radius, leftLeg1.partOfBody.w);
-	volume += SphereVolume(leftLeg2.radius) + CylinderVolume(leftLeg2.radius, leftLeg2.partOfBody.w);
-
-	volume += SphereVolume(rightLeg0.radius) + CylinderVolume(rightLeg0.radius, rightLeg0.partOfBody.w);
-	volume += SphereVolume(rightLeg1.radius) + CylinderVolume(rightLeg1.radius, rightLeg1.partOfBody.w);
-	volume += SphereVolume(rightLeg2.radius) + CylinderVolume(rightLeg2.radius, rightLeg2.partOfBody.w);
-
-	volume += SphereVolume(leftArm0.radius) + CylinderVolume(leftArm0.radius, leftArm0.partOfBody.w);
-	volume += SphereVolume(leftArm1.radius) + CylinderVolume(leftArm1.radius, leftArm1.partOfBody.w);
-	volume += SphereVolume(leftArm2.radius) + CylinderVolume(leftArm2.radius, leftArm2.partOfBody.w);
-
-	volume += SphereVolume(rightArm0.radius) + CylinderVolume(rightArm0.radius, rightArm0.partOfBody.w);
-	volume += SphereVolume(rightArm1.radius) + CylinderVolume(rightArm1.radius, rightArm1.partOfBody.w);
-	volume += SphereVolume(rightArm2.radius) + CylinderVolume(rightArm2.radius, rightArm2.partOfBody.w);
-
-	volume += SphereVolume(head.radius) + CylinderVolume(head.radius, head.partOfBody.w);
-
-	return volume;
+ 	return volume;
 }
 
 void Skeleton::CapsulesInObjSys(DirectX::XMFLOAT4 ** capsules)
