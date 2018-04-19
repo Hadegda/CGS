@@ -266,6 +266,13 @@ bool GeneticAlgorithm::InitGeneticAlgorithm(wchar_t * path)
 
 void GeneticAlgorithm::CreatefirstBreed()
 {
+	std::vector<DirectX::XMFLOAT3> vertices(allFrameData[curFrame].vertexData.size());
+	for (int i = 0; i < vertices.size(); i++) {
+		vertices[i].x = allFrameData[curFrame].vertexData[i].vert.pos.x;
+		vertices[i].y = allFrameData[curFrame].vertexData[i].vert.pos.y;
+		vertices[i].z = allFrameData[curFrame].vertexData[i].vert.pos.z;
+	}
+
 	for (const auto& elem : breed)
 		delete elem.second;
 	breed.clear();
@@ -274,7 +281,7 @@ void GeneticAlgorithm::CreatefirstBreed()
 	person = new PersonPattern();
 	person->Scale((allFrameData[curFrame].bBox.max.z - allFrameData[curFrame].bBox.min.z));
 	person->Centered(allFrameData[curFrame].center);
-	Skeleton* tmp = new Skeleton(person, DirectX::XMFLOAT3{ 1.0f, 0.0f, 0.0f });
+	Skeleton* tmp = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 1.0f, 0.0f, 0.0f });
 	breed.insert({ Distance(tmp), new Data(tmp) });
 	delete person;
 
@@ -282,7 +289,7 @@ void GeneticAlgorithm::CreatefirstBreed()
 	person->Scale((allFrameData[curFrame].bBox.max.z - allFrameData[curFrame].bBox.min.z));
 	person->Centered(allFrameData[curFrame].center);
 	person->InvertY();
-	tmp = new Skeleton(person, DirectX::XMFLOAT3{ 0.0f, 1.0f, 0.0f });
+	tmp = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 0.0f, 1.0f, 0.0f });
 	breed.insert({ Distance(tmp), new Data(tmp) });
 	delete person;
 
@@ -290,7 +297,7 @@ void GeneticAlgorithm::CreatefirstBreed()
 	person->Scale((allFrameData[curFrame].bBox.max.y - allFrameData[curFrame].bBox.min.y));
 	person->Centered(allFrameData[curFrame].center);
 	person->DropLeft();
-	tmp = new Skeleton(person, DirectX::XMFLOAT3{ 0.0f, 0.0f, 1.0f });
+	tmp = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 0.0f, 0.0f, 1.0f });
 	breed.insert({ Distance(tmp), new Data(tmp) });
 	delete person;
 
@@ -298,7 +305,7 @@ void GeneticAlgorithm::CreatefirstBreed()
 	person->Scale((allFrameData[curFrame].bBox.max.y - allFrameData[curFrame].bBox.min.y));
 	person->Centered(allFrameData[curFrame].center);
 	person->DropRight();
-	tmp = new Skeleton(person, DirectX::XMFLOAT3{ 1.0f, 1.0f, 0.0f });
+	tmp = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 1.0f, 1.0f, 0.0f });
 	breed.insert({ Distance(tmp), new Data(tmp) });
 	delete person;
 
@@ -306,7 +313,7 @@ void GeneticAlgorithm::CreatefirstBreed()
 	person->Scale((allFrameData[curFrame].bBox.max.x - allFrameData[curFrame].bBox.min.x));
 	person->Centered(allFrameData[curFrame].center);
 	person->DropBack();
-	tmp = new Skeleton(person, DirectX::XMFLOAT3{ 1.0f, 0.0f, 1.0f });
+	tmp = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 1.0f, 0.0f, 1.0f });
 	breed.insert({ Distance(tmp), new Data(tmp) });
 	delete person;
 
@@ -314,7 +321,7 @@ void GeneticAlgorithm::CreatefirstBreed()
 	person->Scale((allFrameData[curFrame].bBox.max.x - allFrameData[curFrame].bBox.min.x));
 	person->Centered(allFrameData[curFrame].center);
 	person->DropForward();
-	tmp = new Skeleton(person, DirectX::XMFLOAT3{ 0.0f, 1.0f, 1.0f });
+	tmp = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 0.0f, 1.0f, 1.0f });
 	breed.insert({ Distance(tmp), new Data(tmp) });
 	delete person;
 }
@@ -361,7 +368,6 @@ void GeneticAlgorithm::CreateNextBreed(int count, vector<Skeleton*> prevBreed, v
 	}*/
 }
 
-//#include <iterator>
 void GeneticAlgorithm::Select(float deadPart) {
 	/*int deadCount = breed.size() * deadPart;
 
@@ -409,8 +415,8 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 }
 
 void GeneticAlgorithm::NextOptimize(bool mutationTime) {
-	if(mutationTime)
-		Mutation(LIKELIHOOD_MUTATION);
+	/*if(mutationTime)
+		Mutation(LIKELIHOOD_MUTATION);*/
 
 	vector<Skeleton*> oldBreed(breed.size());
 	vector<float> individSurvival(breed.size());
@@ -426,8 +432,19 @@ void GeneticAlgorithm::NextOptimize(bool mutationTime) {
 		i++;
 	}
 
-	Select(DEAD_PART);
-	CreateNextBreed(COUNT_NEW_INDIVIDS, oldBreed, individSurvival);
+	std::map<float, Data*>::iterator pcur, pend;
+	pcur = breed.begin();
+	pend = breed.end();
+
+	while (pcur != pend)
+	{
+		(*pcur).second->individ->OptimizeCapsules();
+		Distance((*pcur).second->individ);
+		pcur++;
+	}
+
+	//Select(DEAD_PART);
+	//CreateNextBreed(COUNT_NEW_INDIVIDS, oldBreed, individSurvival);
 
 	std::map<float, Data*>::iterator cur, end;
 	cur = breed.begin();
@@ -476,51 +493,6 @@ void GeneticAlgorithm::PrevFrame(){
 
 float GeneticAlgorithm::Distance(Skeleton *skeleton)
 {
-	/*const int nCapsules = 28;
-	DirectX::XMFLOAT4* capsules;
-	capsules = new DirectX::XMFLOAT4[nCapsules];
-
-	skeleton->UpdateForNewParameters(&capsules);
-	std::vector<int> nVertInsideCapsule(nCapsules / 2);
-
-	GAdataForFrame* frameData = &allFrameData[curFrame];
-
-	float qdist = 0.0f;
-	float dist = 0.0f;
-	float t = 0.0f;
-	for (int i = 0; i < frameData->vertexData.size(); i++) {
-		frameData->vertexData[i].clasters.clear();
-		DirectX::XMFLOAT3 vertex = DirectX::XMFLOAT3{ frameData->vertexData[i].vert.pos.x, frameData->vertexData[i].vert.pos.y, frameData->vertexData[i].vert.pos.z };
-		float minDistance = 10000.0f;
-		int nBestCaps = -1;
-		bool insideSkelet = false;
-		for (int j = 0; j < nCapsules; j += 2) {
-			DirectX::XMFLOAT3 dir = DirectX::XMFLOAT3{ capsules[j + 1].x - capsules[j].x, capsules[j + 1].y - capsules[j].y, capsules[j + 1].z - capsules[j].z };
-			t = ((vertex.x - capsules[j].x)*dir.x + (vertex.y - capsules[j].y)*dir.y + (vertex.z - capsules[j].z)*dir.z) / (dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
-			t = (t < 0) ? 0 : ((t > 1) ? 1 : t);
-			dist = sqrt((capsules[j].x - vertex.x + dir.x*t)*(capsules[j].x - vertex.x + dir.x*t) + (capsules[j].y - vertex.y + dir.y*t)*(capsules[j].y - vertex.y + dir.y*t) + (capsules[j].z - vertex.z + dir.z*t)*(capsules[j].z - vertex.z + dir.z*t)) - capsules[j].w;// (capsules[j].w + t * (capsules[j + 1].w - capsules[j].w));
-			if (dist <= 0.0f) {
-				insideSkelet = true;
-				nBestCaps = -1;
-				minDistance = dist;
-				frameData->vertexData[i].vert.claster = (UINT)(j / 2);
-				frameData->vertexData[i].clasters.push_back((UINT)(j / 2));
-
-				nVertInsideCapsule[j / 2]++;
-				//break;
-			}
-			if (!insideSkelet && minDistance > dist) {
-				minDistance = dist;
-				nBestCaps = j / 2;
-				frameData->vertexData[i].vert.claster = (UINT)(j / 2);
-			}
-		}
-		if(nBestCaps != -1)
-			nVertInsideCapsule[nBestCaps]++;
-		qdist += (minDistance*minDistance)*//* * frameData->vertexData[i].pos.w* frameData->vertexData[i].pos.w*//*;
-	}
-	qdist = sqrt(qdist);*/
-
 	/*for (int i = 0; i < nVertInsideCapsule.size(); i++) {
 		if (nVertInsideCapsule[i] < 5) {
 			qdist += 50.0f;
@@ -528,93 +500,22 @@ float GeneticAlgorithm::Distance(Skeleton *skeleton)
 		}
 	}*/
 	
-	/*for (int i = 0; i < nLineModelIndices; i += 2) {
-		UINT c0 = frameData->vertexData[lineModelIndices[i]].vert.claster;
-		UINT c1 = frameData->vertexData[lineModelIndices[i + 1]].vert.claster;
-		switch (c0) {
-		case 0:
-			if (c1 != 0 && c1 != 1 && c1 != 4 && c1 != 7 && c1 != 10 && c1 != 13)
-				qdist += 0.2f;
-			break;
+	std::vector<UINT> clasters(allFrameData[curFrame].vertexData.size());
 
-		case 1:
-			if (c1 != 0 && c1 != 1 && c1 != 2)
-				qdist += 0.2f;
-			break;
+	float dist = skeleton->Distance(&clasters);
 
-		case 2:
-			if (c1 != 1 && c1 != 2 && c1 != 3)
-				qdist += 0.2f;
-			break;
+	if (allFrameData[curFrame].pGenVertices) allFrameData[curFrame].pGenVertices->Release();
 
-		case 3:
-			if (c1 != 2 && c1 != 3)
-				qdist += 0.2f;
-			break;
-
-		case 4:
-			if (c1 != 0 && c1 != 4 && c1 != 5)
-				qdist += 0.2f;
-			break;
-
-		case 5:
-			if (c1 != 4 && c1 != 5 && c1 != 6)
-				qdist += 0.2f;
-			break;
-
-		case 6:
-			if (c1 != 5 && c1 != 6)
-				qdist += 0.2f;
-			break;
-
-		case 7:
-			if (c1 != 0 && c1 != 7 && c1 != 8)
-				qdist += 0.2f;
-			break;
-
-		case 8:
-			if (c1 != 7 && c1 != 8 && c1 != 9)
-				qdist += 0.2f;
-			break;
-
-		case 9:
-			if (c1 != 8 && c1 != 9)
-				qdist += 0.2f;
-			break;
-
-		case 10:
-			if (c1 != 0 && c1 != 10 && c1 != 11)
-				qdist += 0.2f;
-			break;
-
-		case 11:
-			if (c1 != 00 && c1 != 11 && c1 != 12)
-				qdist += 0.2f;
-			break;
-
-		case 12:
-			if (c1 != 11 && c1 != 12)
-				qdist += 0.2f;
-			break;
-
-		case 13:
-			if (c1 != 0 && c1 != 13)
-				qdist += 0.2f;
-			break;
-		}
-	}
-
-	if (frameData->pGenVertices) frameData->pGenVertices->Release();
-
-	vector<gen_vertex> vertices(frameData->vertexData.size());
-	for (int j = 0; j < frameData->vertexData.size(); j++) {
-		vertices[j] = frameData->vertexData[j].vert;
+	vector<gen_vertex> vertices(allFrameData[curFrame].vertexData.size());
+	for (int j = 0; j < allFrameData[curFrame].vertexData.size(); j++) {
+		vertices[j] = allFrameData[curFrame].vertexData[j].vert;
+		vertices[j].claster = clasters[j];
 	}
 
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(gen_vertex) * (frameData->vertexData.size());
+	bd.ByteWidth = sizeof(gen_vertex) * (allFrameData[curFrame].vertexData.size());
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 
@@ -622,16 +523,15 @@ float GeneticAlgorithm::Distance(Skeleton *skeleton)
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices.data();
-	hr = RendererCore::Get()->GetDevice()->CreateBuffer(&bd, &InitData, &frameData->pGenVertices);
+	hr = RendererCore::Get()->GetDevice()->CreateBuffer(&bd, &InitData, &allFrameData[curFrame].pGenVertices);
 	if (FAILED(hr))
 		return -1.0f;
-	CopyNameToDebugObjectName(frameData->pGenVertices);
+	CopyNameToDebugObjectName(allFrameData[curFrame].pGenVertices);
 
-	if (qdist < 0.1f) {
-		return qdist;
+	if (dist < 0.1f) {
+		return dist;
 	}
-	delete[] capsules;*/
-	return (float)rand() / RAND_MAX;// qdist;
+	return dist;
 }
 
 void GeneticAlgorithm::DrawModelBBox()

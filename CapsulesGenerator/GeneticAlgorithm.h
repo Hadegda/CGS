@@ -6,7 +6,7 @@
 #include "md2Model.h"
 #include "skeleton.h"
 
-#define AGE_FOR_DEAD 20
+#define AGE_FOR_DEAD 200
 #define LIKELIHOOD_MUTATION 40.0f
 #define FREQUENCY_MUTATION 9
 #define DEAD_PART 0.5f
@@ -46,7 +46,6 @@ struct GAdataForFrame {
 	~GAdataForFrame() { if (pBBoxVertices) pBBoxVertices->Release(); if (pGenVertices) pGenVertices->Release(); };
 
 	std::vector<ga_vertex> vertexData;
-//	std::vector<DirectX::XMFLOAT3> vertexData;
 	BoundaredBox bBox;
 	ID3D11Buffer* pGenVertices;
 	ID3D11Buffer* pBBoxVertices;

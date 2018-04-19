@@ -3,7 +3,9 @@
 #include <cmath>
 
 #define Float3Length(a) (sqrt(a.x*a.x + a.y*a.y + a.z*a.z))
+#define Float3DotProduct(a, b) (a.x*b.x + a.y*b.y + a.z*b.z)
 #define Float3Substruct(a, b) (XMFLOAT3(a.x-b.x, a.y-b.y, a.z-b.z))
+#define Float3ScalarMult(a, c) (XMFLOAT3(c*a.x, c*a.y, c*a.z))
 
 using namespace DirectX;
 
@@ -37,8 +39,8 @@ bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
 	if (color.x >= 0)
 		this->color = color;
 
-	XMFLOAT3 vec = Float3Substruct(p1, p0);
-	float length = Float3Length(vec);
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	float length = Float3Length(dir);
 	float r = p0.w;
 
 	HRESULT hr = S_OK;
@@ -222,10 +224,26 @@ void Capsule::DrawCaps(XMFLOAT4X4 mWorld, float light, float transparency, int n
 
 float Capsule::GetVolume()
 {
-	XMFLOAT3 vec = Float3Substruct(p1, p0);
-	float length = Float3Length(vec);
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	float length = Float3Length(dir);
 
 	return SphereVolume(p0.w) + CylinderVolume(p0.w, length);
+}
+
+float Capsule::DistanceToPoint(DirectX::XMFLOAT3 p)
+{
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	XMFLOAT3 vec = Float3Substruct(p, p0);
+	float length = Float3Length(dir);
+
+	float t = Float3DotProduct(vec, dir) / Float3DotProduct(dir, dir);
+	t = (t < 0) ? 0 : ((t > 1) ? 1 : t);
+	return sqrt((-vec.x + dir.x*t)*(-vec.x + dir.x*t) + (-vec.y + dir.y*t)*(-vec.y + dir.y*t) + (-vec.z + dir.z*t)*(-vec.z + dir.z*t)) - p0.w;
+}
+
+bool Capsule::OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points)
+{
+	return true;
 }
 
 Capsule::~Capsule()

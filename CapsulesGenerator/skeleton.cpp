@@ -3,8 +3,7 @@
 
 using namespace DirectX;
 
-bool Skeleton::CreateFromParents(Skeleton * parent0, Skeleton * parent1, float impact0, float impact1)
-{
+bool Skeleton::CreateFromParents(Skeleton * parent0, Skeleton * parent1, float impact0, float impact1) {
 	/*std::default_random_engine generator;
 	std::normal_distribution<float> distribution(0.5f, 0.25f);
 
@@ -17,8 +16,7 @@ bool Skeleton::CreateFromParents(Skeleton * parent0, Skeleton * parent1, float i
 	return true;
 }
 
-void Skeleton::Mutation(int level, int n)
-{
+void Skeleton::Mutation(int level, int n) {
 	if (level == 0) {
 		MutationAll();
 	}
@@ -32,8 +30,102 @@ void Skeleton::Mutation(int level, int n)
 	CorrectionOnRadius();
 }
 
-void Skeleton::MutationAll()
-{
+float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
+	float dist = 0.0f;
+	for (int i = 0; i < vertices.size(); i++) {
+		(*vertexClasters)[i] = (*capsForVertices[i].begin()).second;
+		float d = (*capsForVertices[i].begin()).first;
+		if (d > 0)
+			dist += d*d;
+	}
+	dist = sqrt(dist);
+
+	for (int i = 0; i < lineList.size(); i += 2) {
+		UINT c0 = (*capsForVertices[lineList[i]].begin()).second;
+		UINT c1 = (*capsForVertices[lineList[i+1]].begin()).second;
+		switch (c0) {
+		case 0:
+			if (c1 != 0 && c1 != 1 && c1 != 4 && c1 != 7 && c1 != 10 && c1 != 13)
+				dist += 0.2f;
+			break;
+
+		case 1:
+			if (c1 != 0 && c1 != 1 && c1 != 2)
+				dist += 0.2f;
+			break;
+
+		case 2:
+			if (c1 != 1 && c1 != 2 && c1 != 3)
+				dist += 0.2f;
+			break;
+
+		case 3:
+			if (c1 != 2 && c1 != 3)
+				dist += 0.2f;
+			break;
+
+		case 4:
+			if (c1 != 0 && c1 != 4 && c1 != 5)
+				dist += 0.2f;
+			break;
+
+		case 5:
+			if (c1 != 4 && c1 != 5 && c1 != 6)
+				dist += 0.2f;
+			break;
+
+		case 6:
+			if (c1 != 5 && c1 != 6)
+				dist += 0.2f;
+			break;
+
+		case 7:
+			if (c1 != 0 && c1 != 7 && c1 != 8)
+				dist += 0.2f;
+			break;
+
+		case 8:
+			if (c1 != 7 && c1 != 8 && c1 != 9)
+				dist += 0.2f;
+			break;
+
+		case 9:
+			if (c1 != 8 && c1 != 9)
+				dist += 0.2f;
+			break;
+
+		case 10:
+			if (c1 != 0 && c1 != 10 && c1 != 11)
+				dist += 0.2f;
+			break;
+
+		case 11:
+			if (c1 != 00 && c1 != 11 && c1 != 12)
+				dist += 0.2f;
+			break;
+
+		case 12:
+			if (c1 != 11 && c1 != 12)
+				dist += 0.2f;
+			break;
+
+		case 13:
+			if (c1 != 0 && c1 != 13)
+				dist += 0.2f;
+			break;
+		}
+	}
+
+	return dist;
+}
+
+void Skeleton::OptimizeCapsules() {
+	for (int j = 0; j < caps.size(); j++) {
+		caps[j]->OptimizeForPointSet(vertices);
+	}
+}
+
+void Skeleton::MutationAll() {
 	std::default_random_engine generator;
 	std::normal_distribution<float> distribution(1.0f, 1.0f);
 
@@ -128,17 +220,22 @@ void Skeleton::CorrectionOnMaxShift() {
 	rightArm1.radius = (rightArm2.shift.w > rightArm1.radius) ? rightArm2.shift.w : rightArm1.radius;*/
 }
 
-void Skeleton::DistributeVertices() {
-	
-}
-
 void Skeleton::DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency)
 {
 	for (int i = 0; i < caps.size(); i++)
 		caps[i]->DrawCaps(world, light, transparency, i);
 }
 
-Skeleton::Skeleton(PersonPattern* homo, DirectX::XMFLOAT3 color)
+void Skeleton::DistributeVertices() {
+	for (int i = 0; i < vertices.size(); i++) {
+		for (int j = 0; j < caps.size(); j++) {
+			float d = caps[j]->DistanceToPoint(vertices[i]);
+			capsForVertices[i].insert({ d, (UINT)j });
+		}
+	}
+}
+
+Skeleton::Skeleton(PersonPattern* homo, std::vector<DirectX::XMFLOAT3> vertices, std::vector<UINT32> lineModelIndices, DirectX::XMFLOAT3 color)
 {
 	this->color = color;
 	homo->GetParameters(&parameters);
@@ -148,6 +245,33 @@ Skeleton::Skeleton(PersonPattern* homo, DirectX::XMFLOAT3 color)
 	for (int i = 0; i < caps.size(); i++)
 		caps[i] = new Capsule(color);
 	UpdateForNewParameters();
+
+	this->vertices.clear();
+	this->vertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++)
+		this->vertices[i] = vertices[i];
+
+	lineList.clear();
+	lineList.resize(lineModelIndices.size());
+	for (int i = 0; i < lineModelIndices.size(); i++)
+		lineList[i] = lineModelIndices[i];
+
+	//verticesForCaps.clear();
+	capsForVertices.clear();
+	capsForVertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++) {
+		capsForVertices[i].clear();
+	}
+	DistributeVertices();
+
+	verticesForCaps.clear();
+	verticesForCaps.resize(caps.size());
+	for (int i = 0; i < caps.size(); i++) {
+		verticesForCaps[i].clear();
+	}
+	for (int i = 0; i < vertices.size(); i++) {
+		verticesForCaps[(*capsForVertices[i].begin()).second].push_back((UINT)i);
+	}
 }
 
 Skeleton::~Skeleton()

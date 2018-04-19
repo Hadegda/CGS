@@ -1,9 +1,6 @@
 #ifndef _CAPSULE_H_
 #define _CAPSULE_H_
 
-#include <windows.h>
-#include <DirectXMath.h>
-#include <unordered_map>
 #include <vector>
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
@@ -27,6 +24,8 @@ public:
 	void DrawCaps(DirectX::XMFLOAT4X4 mWorld, float light, float transparency, int nCapsule = -1);
 
 	float GetVolume();
+	float DistanceToPoint(DirectX::XMFLOAT3 p);
+	bool OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points);
 
 	Capsule(DirectX::XMFLOAT3 color);
 	~Capsule();
@@ -36,8 +35,6 @@ public:
 
 private:
 	DirectX::XMFLOAT3 color;
-
-	
 
 	bool CreateBuffers();
 	ID3D11Buffer* pCapsVertices;
