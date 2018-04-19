@@ -5,6 +5,7 @@
 #define Float3Length(a) (sqrt(a.x*a.x + a.y*a.y + a.z*a.z))
 #define Float3DotProduct(a, b) (a.x*b.x + a.y*b.y + a.z*b.z)
 #define Float3Substruct(a, b) (XMFLOAT3(a.x-b.x, a.y-b.y, a.z-b.z))
+#define Float3Sum(a, b) (XMFLOAT3(a.x+b.x, a.y+b.y, a.z+b.z))
 #define Float3ScalarMult(a, c) (XMFLOAT3(c*a.x, c*a.y, c*a.z))
 
 using namespace DirectX;
@@ -234,7 +235,6 @@ float Capsule::DistanceToPoint(DirectX::XMFLOAT3 p)
 {
 	XMFLOAT3 dir = Float3Substruct(p1, p0);
 	XMFLOAT3 vec = Float3Substruct(p, p0);
-	float length = Float3Length(dir);
 
 	float t = Float3DotProduct(vec, dir) / Float3DotProduct(dir, dir);
 	t = (t < 0) ? 0 : ((t > 1) ? 1 : t);
@@ -243,6 +243,64 @@ float Capsule::DistanceToPoint(DirectX::XMFLOAT3 p)
 
 bool Capsule::OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points)
 {
+	XMFLOAT3 m = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i < points.size(); i++) {
+		m = Float3Sum(m, points[i]);
+	}
+	m = Float3ScalarMult(m, 1.0f / points.size());
+
+	//correlation matrix
+	float c11 = 0.0f, c22 = 0.0f, c33 = 0.0f, c12 = 0.0f, c23 = 0.0f, c13 = 0.0f;
+	for (int i = 0; i < points.size(); i++) {
+		c11 += (points[i].x - m.x)*(points[i].x - m.x);
+		c22 += (points[i].y - m.y)*(points[i].y - m.y);
+		c33 += (points[i].z - m.z)*(points[i].z - m.z);
+
+		c12 += (points[i].x - m.x)*(points[i].y - m.y);
+		c13 += (points[i].x - m.x)*(points[i].z - m.z);
+		c23 += (points[i].y - m.y)*(points[i].z - m.z);
+	}
+	c11 /= points.size();
+	c22 /= points.size();
+	c33 /= points.size();
+			 
+	c12 /= points.size();
+	c13 /= points.size();
+	c23 /= points.size();
+
+	//eigen values
+	float eig1, eig2, eig3;
+	float p1 = c12*c12 + c13*c13 + c23*c23;
+	if (p1 == 0) { //diagonal.
+		eig1 = c11;
+		eig2 = c22;
+		eig3 = c33;
+	}
+	else {
+		float q = (c11 + c22 + c33) / 3.0f;
+		float p2 = (c11 - q)*(c11 - q) + (c22 - q)*(c22 - q) + (c33 - q)*(c33 - q) + 2.0f * p1;
+		float p = sqrt(p2 / 6.0f);
+		XMMATRIX B = XMMatrixSet((1 / p) *(c11 - q), (1 / p) *c12, (1 / p) *c13, 0.0f, (1 / p) *c12, (1 / p) *(c22 - q), (1 / p) *c23, 0.0f, (1 / p) *c13, (1 / p) *c23, (1 / p) *(c33 - q), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+		//B = (1 / p) * (A - q * E); // E is the identity matrix
+		float r = XMVectorGetX(XMMatrixDeterminant(B)) / 2.0f;
+
+			// In exact arithmetic for a symmetric matrix - 1 <= r <= 1
+			// but computation error can leave it slightly outside this range.
+		float phi;
+		if (r <= -1.0f)
+			phi = XM_PI / 3.0f;
+		else
+			if (r >= 1.0f)
+				phi = 0.0f;
+			else
+				phi = acos(r) / 3.0f;
+
+				// the eigenvalues satisfy eig3 <= eig2 <= eig1
+		eig1 = q + 2.0f * p * cos(phi);
+		eig3 = q + 2.0f * p * cos(phi + (2.0f * XM_PI / 3.0f));
+		eig2 = 3.0f * q - eig1 - eig3;     // since trace(A) = eig1 + eig2 + eig3
+	}
+
 	return true;
 }
 

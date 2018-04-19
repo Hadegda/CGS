@@ -120,8 +120,14 @@ float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
 }
 
 void Skeleton::OptimizeCapsules() {
+	std::vector<XMFLOAT3> pointSet;
 	for (int j = 0; j < caps.size(); j++) {
-		caps[j]->OptimizeForPointSet(vertices);
+		pointSet.clear();
+		pointSet.resize(verticesForCaps[j].size());
+		for (int i = 0; i < pointSet.size(); i++) {
+			pointSet[i] = vertices[verticesForCaps[j][i]];
+		}
+		caps[j]->OptimizeForPointSet(pointSet);
 	}
 }
 
@@ -230,6 +236,8 @@ void Skeleton::DistributeVertices() {
 	for (int i = 0; i < vertices.size(); i++) {
 		for (int j = 0; j < caps.size(); j++) {
 			float d = caps[j]->DistanceToPoint(vertices[i]);
+			if (d < 0)
+				d = -0.1f * j;
 			capsForVertices[i].insert({ d, (UINT)j });
 		}
 	}

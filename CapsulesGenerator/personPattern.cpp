@@ -15,10 +15,10 @@ PersonPattern::PersonPattern()
 	rightLeg0 = { XMFLOAT4{ 0.0f, -1.0f, 0.0f, 0.1f }, XMFLOAT4{ 0.0f, 0.0f, -1.0f, 0.22f }, 0.07f };
 	rightLeg1 = { XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, XMFLOAT4{ 0.0f, 0.0f, -1.0f, 0.22f }, 0.06f };
 	rightLeg2 = { XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, XMFLOAT4{ 1.0f, 0.0f, 0.0f, 0.05f }, 0.06f };
-	leftArm0 = { XMFLOAT4{ 0.0f, 1.0f, 0.4f, 0.14f }, XMFLOAT4{ 0.0f, 1.0f, 0.0f, 0.2f }, 0.05f };
+	leftArm0 = { XMFLOAT4{ 0.0f, 1.0f, 0.4f, 0.14f }, XMFLOAT4{ 0.0f, 1.0f, 0.0f, 0.15f }, 0.05f };
 	leftArm1 = { XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, XMFLOAT4{ 0.0f, 0.0f, -1.0f, 0.2f },0.05f };
 	leftArm2 = { XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, XMFLOAT4{ 0.0f, 0.0f, -1.0f, 0.2f }, 0.05f };
-	rightArm0 = { XMFLOAT4{ 0.0f, -1.0f, 0.4f, 0.14f }, XMFLOAT4{ 0.0f, -1.0f, 0.0f, 0.2f }, 0.05f };
+	rightArm0 = { XMFLOAT4{ 0.0f, -1.0f, 0.4f, 0.14f }, XMFLOAT4{ 0.0f, -1.0f, 0.0f, 0.15f }, 0.05f };
 	rightArm1 = { XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, XMFLOAT4{ 0.0f, 0.0f, -1.0f, 0.2f }, 0.05f };
 	rightArm2 = { XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, XMFLOAT4{ 0.0f, 0.0f, -1.0f, 0.2f }, 0.05f };
 	head = { XMFLOAT4{ 0.0f, 0.0f, 1.0f, 0.16f }, XMFLOAT4{ 0.0f, 0.0f, 1.0f, 0.02f }, 0.08f };
