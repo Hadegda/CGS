@@ -336,3 +336,66 @@ void Skeleton::UpdateForNewParameters()
 	caps[13]->Init(p0, p1);
 	return;
 	}
+
+void Skeleton::UpdateOneParametrGroup(int nPrevCaps, int nCurCapsule, bool isFirstLegCaps, int startNum) {
+	XMFLOAT3 dir;
+	if (isFirstLegCaps)
+		dir = Float3Substruct(caps[nCurCapsule]->p0, caps[nPrevCaps]->p0);
+	else
+		dir = Float3Substruct(caps[nCurCapsule]->p0, caps[nPrevCaps]->p1);
+	if (Float3Length(dir) == 0) {
+		parameters[startNum + 0] = 1.0f;
+		parameters[startNum + 1] = 1.0f;
+		parameters[startNum + 2] = 1.0f;
+	}
+	else {
+		parameters[startNum + 0] = dir.x;
+		parameters[startNum + 1] = dir.y;
+		parameters[startNum + 2] = dir.z;
+	}
+	parameters[startNum + 3] = Float3Length(dir);
+
+	dir = Float3Substruct(caps[nCurCapsule]->p1, caps[nCurCapsule]->p0);
+	parameters[startNum + 4] = dir.x;
+	parameters[startNum + 5] = dir.y;
+	parameters[startNum + 6] = dir.z;
+	parameters[startNum + 7] = Float3Length(dir);
+	parameters[startNum + 8] = caps[nCurCapsule]->p0.w;
+}
+
+void Skeleton::UpdateForNewCapsules()
+{
+	parameters[0] = caps[0]->p0.x;
+	parameters[1] = caps[0]->p0.y;
+	parameters[2] = caps[0]->p0.z;
+
+	XMFLOAT3 dir = Float3Substruct(caps[0]->p1, caps[0]->p0);
+	parameters[3] = dir.x;
+	parameters[4] = dir.y;
+	parameters[5] = dir.z;
+	parameters[6] = Float3Length(dir);
+	parameters[7] = caps[0]->p0.w;
+
+	//left leg
+	UpdateOneParametrGroup(0, 1, true, 8);
+	UpdateOneParametrGroup(1, 2, false, 17);
+	UpdateOneParametrGroup(2, 3, false, 26);
+
+	//right leg
+	UpdateOneParametrGroup(0, 4, true, 35);
+	UpdateOneParametrGroup(4, 5, false, 44);
+	UpdateOneParametrGroup(5, 6, false, 53);
+
+	//left arm
+	UpdateOneParametrGroup(0, 7, false, 62);
+	UpdateOneParametrGroup(7, 8, false, 71);
+	UpdateOneParametrGroup(8, 9, false, 80);
+
+	//right arm
+	UpdateOneParametrGroup(0, 10, false, 89);
+	UpdateOneParametrGroup(10, 11, false, 98);
+	UpdateOneParametrGroup(11, 12, false, 107);
+
+	//head
+	UpdateOneParametrGroup(0, 13, false, 116);
+}

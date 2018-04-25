@@ -6,6 +6,12 @@
 #include <d3dcompiler.h>
 #include <directxmath.h>
 
+#define Float3Length(a) (sqrt(a.x*a.x + a.y*a.y + a.z*a.z))
+#define Float3DotProduct(a, b) (a.x*b.x + a.y*b.y + a.z*b.z)
+#define Float3Substruct(a, b) (XMFLOAT3(a.x-b.x, a.y-b.y, a.z-b.z))
+#define Float3Sum(a, b) (XMFLOAT3(a.x+b.x, a.y+b.y, a.z+b.z))
+#define Float3ScalarMult(a, c) (XMFLOAT3(c*a.x, c*a.y, c*a.z))
+
 typedef struct {
 	DirectX::XMFLOAT3 pos;
 } caps_vertex;

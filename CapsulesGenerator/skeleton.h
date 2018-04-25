@@ -21,6 +21,8 @@ public:
 	void DistributeVertices();
 
 	void UpdateForNewParameters();
+	void UpdateOneParametrGroup(int nPrevCaps, int nCurCapsule, bool isFirstLegCaps, int startNum);
+	void UpdateForNewCapsules();
 	void UpdateOneCapsule(DirectX::XMFLOAT4* cCur, DirectX::XMFLOAT4 cPrev, int nFirstParam, bool isShiftInterpret);
 
 	float GetVolume();

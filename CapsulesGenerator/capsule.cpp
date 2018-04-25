@@ -2,12 +2,6 @@
 #include "device.h"
 #include <cmath>
 
-#define Float3Length(a) (sqrt(a.x*a.x + a.y*a.y + a.z*a.z))
-#define Float3DotProduct(a, b) (a.x*b.x + a.y*b.y + a.z*b.z)
-#define Float3Substruct(a, b) (XMFLOAT3(a.x-b.x, a.y-b.y, a.z-b.z))
-#define Float3Sum(a, b) (XMFLOAT3(a.x+b.x, a.y+b.y, a.z+b.z))
-#define Float3ScalarMult(a, c) (XMFLOAT3(c*a.x, c*a.y, c*a.z))
-
 using namespace DirectX;
 
 int const Capsule::nVertSeg = 16;
@@ -270,15 +264,15 @@ bool Capsule::OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points)
 
 	//eigen values
 	float eig1, eig2, eig3;
-	float p1 = c12*c12 + c13*c13 + c23*c23;
-	if (p1 == 0) { //diagonal.
+	float P1 = c12*c12 + c13*c13 + c23*c23;
+	if (P1 == 0) { //diagonal.
 		eig1 = c11;
 		eig2 = c22;
 		eig3 = c33;
 	}
 	else {
 		float q = (c11 + c22 + c33) / 3.0f;
-		float p2 = (c11 - q)*(c11 - q) + (c22 - q)*(c22 - q) + (c33 - q)*(c33 - q) + 2.0f * p1;
+		float p2 = (c11 - q)*(c11 - q) + (c22 - q)*(c22 - q) + (c33 - q)*(c33 - q) + 2.0f * P1;
 		float p = sqrt(p2 / 6.0f);
 		XMMATRIX B = XMMatrixSet((1 / p) *(c11 - q), (1 / p) *c12, (1 / p) *c13, 0.0f, (1 / p) *c12, (1 / p) *(c22 - q), (1 / p) *c23, 0.0f, (1 / p) *c13, (1 / p) *c23, (1 / p) *(c33 - q), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 		//B = (1 / p) * (A - q * E); // E is the identity matrix
@@ -300,7 +294,44 @@ bool Capsule::OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points)
 		eig3 = q + 2.0f * p * cos(phi + (2.0f * XM_PI / 3.0f));
 		eig2 = 3.0f * q - eig1 - eig3;     // since trace(A) = eig1 + eig2 + eig3
 	}
+	float denum = (c11 - eig1)*(c22 - eig1) - c12*c12;
+	XMVECTOR eigVec1 = XMVector3Normalize(XMVectorSet((c12*c23 - c13*(c22 - eig1)) / denum, (c12*c13 - c23*(c11 - eig1)) / denum, 1.0f, 0.0f));
+	denum = (c11 - eig2)*(c22 - eig2) - c12*c12;
+	XMVECTOR eigVec2 = XMVector3Normalize(XMVectorSet((c12*c23 - c13*(c22 - eig2)) / denum, (c12*c13 - c23*(c11 - eig2)) / denum, 1.0f, 0.0f));
+	denum = (c11 - eig3)*(c22 - eig3) - c12*c12;
+	XMVECTOR eigVec3 = XMVector3Normalize(XMVectorSet((c12*c23 - c13*(c22 - eig3)) / denum, (c12*c13 - c23*(c11 - eig3)) / denum, 1.0f, 0.0f));
+	XMVECTOR Vec4 = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 
+	XMMATRIX transformBehind = XMMATRIX(eigVec1, eigVec2, eigVec3, Vec4);
+	XMMATRIX transformToNew = XMMatrixTranspose(transformBehind);
+
+	std::vector<XMVECTOR> newPoints(points.size());
+	float y = 0.0f, z = 0.0f;
+	float xMin = 0.0f, xMax = 0.0f;
+	for (int i = 0; i < points.size(); i++) {
+		newPoints[i] = XMVector3TransformCoord(XMVectorSet(points[i].x, points[i].y, points[i].z, 1.0f), transformToNew);
+		y += XMVectorGetY(newPoints[i]);
+		z += XMVectorGetZ(newPoints[i]);
+		if (xMin == xMax && xMax == 0.0f) {
+			xMin = xMax =  XMVectorGetX(newPoints[i]);
+		}
+		else {
+			xMin = (xMin > XMVectorGetX(newPoints[i])) ? XMVectorGetX(newPoints[i]) : xMin;
+			xMax = (xMax < XMVectorGetX(newPoints[i])) ? XMVectorGetX(newPoints[i]) : xMax;
+		}
+	}
+	y /= points.size();
+	z /= points.size();
+
+
+
+	XMVECTOR V1 = XMVector3TransformCoord(XMVectorSet(xMin, y, z, 1.0f), transformBehind);
+	XMVECTOR V2 = XMVector3TransformCoord(XMVectorSet(xMax, y, z, 1.0f), transformBehind);
+
+	XMStoreFloat4(&p0, V1);
+	p0.w = 1.0f;
+	XMStoreFloat4(&p1, V2);
+	p1.w = 1.0f;
 	return true;
 }
 
