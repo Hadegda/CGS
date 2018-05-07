@@ -4,15 +4,15 @@
 using namespace DirectX;
 
 bool Skeleton::CreateFromParents(Skeleton * parent0, Skeleton * parent1, float impact0, float impact1) {
-	/*std::default_random_engine generator;
+	std::default_random_engine generator;
 	std::normal_distribution<float> distribution(0.5f, 0.25f);
 
-	torso.shift = XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f };
 	for (int i = 0; i < 125; i++) {
 		float val = distribution(generator);
-		*(parameters[i]) = val * (*(parent0->parameters[i])) + (1.0f-val) * (*(parent1->parameters[i]));
+		parameters[i] = val * (parent0->parameters[i]) + (1.0f-val) * (parent1->parameters[i]);
 	}
-	CorrectionOnRadius();*/
+	CorrectionOnRadius();
+	UpdateForNewParameters();
 	return true;
 }
 
@@ -145,6 +145,7 @@ void Skeleton::MutationAll() {
 			parameters[n] = parameters[n] + (val - 1.0f) / 2.0f;//  * (val*2.0f - 2.0f); //(val - 1.0f);// * *(parameters[n]);
 		}
 	}
+	UpdateForNewParameters();
 }
 
 void Skeleton::OneGenMutation(int n)
@@ -157,6 +158,7 @@ void Skeleton::OneGenMutation(int n)
 		float val = (float)((float)rand() / RAND_MAX) * 2.0f;
 		parameters[n] = parameters[n] + (val - 1.0f) / 2.0f;// *(val*2.0f - 2.0f); // * *(parameters[n]);
 	}
+	UpdateForNewParameters();
 }
 
 void Skeleton::OneCapsuleMutation(int n)
@@ -184,6 +186,7 @@ void Skeleton::OneCapsuleMutation(int n)
 		parameters[9 * n + 6] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[9 * n + 6];
 		parameters[9 * n + 7] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[9 * n + 7];
 	}
+	UpdateForNewParameters();
 }
 
 void Skeleton::CorrectionOnRadius() {
@@ -224,6 +227,7 @@ void Skeleton::CorrectionOnMaxShift() {
 	leftArm1.radius = (leftArm2.shift.w > leftArm1.radius) ? leftArm2.shift.w : leftArm1.radius;
 	rightArm0.radius = (rightArm1.shift.w > rightArm0.radius) ? rightArm1.shift.w : rightArm0.radius;
 	rightArm1.radius = (rightArm2.shift.w > rightArm1.radius) ? rightArm2.shift.w : rightArm1.radius;*/
+
 }
 
 void Skeleton::DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency)

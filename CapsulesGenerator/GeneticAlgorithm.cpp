@@ -379,8 +379,7 @@ void GeneticAlgorithm::Select(float deadPart) {
 }
 
 void GeneticAlgorithm::Mutation(float likelihoodMutation) {
-
-	/*vector<Data*> tmp(0);
+	vector<Data*> tmp(0);
 	vector<float> tmpKeys(0);
 
 	for (const auto& elem : breed) {
@@ -393,7 +392,7 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 	for (int i = 0; i < tmp.size(); i++) {
 		breed.erase(tmpKeys[i]);
 	}
-	int level = 2;
+	/*int level = 2;
 	int n = 0;
 	if ((*breed.begin()).first > LEVEL_MUTATION0) {
 		level = 0;
@@ -407,16 +406,16 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 			n = rand() % 125;
 			level = 2;
 		}
-	}
-	for (int i = 0; i < tmp.size(); i++) {
-		tmp[i]->individ->Mutation(level, n);
-		breed.insert({ Distance(tmp[i]->individ), tmp[i] });
 	}*/
+	for (int i = 0; i < tmp.size(); i++) {
+		tmp[i]->individ->OptimizeCapsules();
+		breed.insert({ Distance(tmp[i]->individ), tmp[i] });
+	}
 }
 
 void GeneticAlgorithm::NextOptimize(bool mutationTime) {
-	/*if(mutationTime)
-		Mutation(LIKELIHOOD_MUTATION);*/
+	//if(mutationTime)
+		//Mutation(LIKELIHOOD_MUTATION);
 
 	vector<Skeleton*> oldBreed(breed.size());
 	vector<float> individSurvival(breed.size());
@@ -592,3 +591,38 @@ GeneticAlgorithm::~GeneticAlgorithm(){
 	}
 	breed.clear();
 }
+
+/*void GeneticAlgorithm::Mutation(float likelihoodMutation) {
+	vector<Data*> tmp(0);
+	vector<float> tmpKeys(0);
+
+	for (const auto& elem : breed) {
+	if ((float)(rand() % 101) < likelihoodMutation) {
+	tmp.push_back(elem.second);
+	tmpKeys.push_back(elem.first);
+	}
+	}
+
+	for (int i = 0; i < tmp.size(); i++) {
+	breed.erase(tmpKeys[i]);
+	}
+	int level = 2;
+	int n = 0;
+	if ((*breed.begin()).first > LEVEL_MUTATION0) {
+	level = 0;
+	}
+	else {
+	if ((*breed.begin()).first > LEVEL_MUTATION1) {
+	n = rand() % 14;
+	level = 1;
+	}
+	else {
+	n = rand() % 125;
+	level = 2;
+	}
+	}
+	for (int i = 0; i < tmp.size(); i++) {
+	tmp[i]->individ->Mutation(level, n);
+	breed.insert({ Distance(tmp[i]->individ), tmp[i] });
+	}
+}*/
