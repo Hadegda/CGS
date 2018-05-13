@@ -16,20 +16,6 @@ bool Skeleton::CreateFromParents(Skeleton * parent0, Skeleton * parent1, float i
 	return true;
 }
 
-void Skeleton::Mutation(int level, int n) {
-	if (level == 0) {
-		MutationAll();
-	}
-	else {
-		if (level == 1)
-			OneCapsuleMutation(n);
-		else
-			OneGenMutation(n);
-	}
-
-	CorrectionOnRadius();
-}
-
 float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
 	float dist = 0.0f;
 	for (int i = 0; i < vertices.size(); i++) {
@@ -131,6 +117,21 @@ void Skeleton::OptimizeCapsules() {
 	}
 }
 
+
+void Skeleton::Mutation(int level, int n) {
+	if (level == 0) {
+		MutationAll();
+	}
+	else {
+		if (level == 1)
+			OneCapsuleMutation(n);
+		else
+			OneGenMutation(n);
+	}
+
+	CorrectionOnRadius();
+}
+
 void Skeleton::MutationAll() {
 	std::default_random_engine generator;
 	std::normal_distribution<float> distribution(1.0f, 1.0f);
@@ -188,6 +189,7 @@ void Skeleton::OneCapsuleMutation(int n)
 	}
 	UpdateForNewParameters();
 }
+
 
 void Skeleton::CorrectionOnRadius() {
 	/*if (leftLeg0.shift.w > torso.radius || rightLeg0.shift.w > torso.radius) {
