@@ -14,7 +14,7 @@ public:
 	bool CreateFromParents(Skeleton* parent0, Skeleton* parent1, float impact0, float impact1);
 	void Mutation(int level, int n = 0);
 	float Distance(std::vector<UINT>* vertexClasters);
-	void OptimizeCapsules();
+	bool OptimizeCapsules();
 
 	void DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency);
 

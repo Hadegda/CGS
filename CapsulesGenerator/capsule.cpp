@@ -88,6 +88,45 @@ bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
 	return true;
 }
 
+bool Capsule::Reshape()
+{
+	
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	float length = Float3Length(dir);
+	float r = p0.w;
+
+	HRESULT hr = S_OK;
+
+	caps_vertex vertices[2 * nVertSeg * nUpHalfSeg + 2];
+	for (int i = 0; i < nVertSeg; i++) {
+		for (int j = 0; j < nUpHalfSeg; j++) {
+			vertices[2 * nUpHalfSeg * i + j] = { XMFLOAT3{ r * xCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], r * zCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], -r * yCoords[nUpHalfSeg - 1 - j] } };
+			vertices[2 * nUpHalfSeg * i + nUpHalfSeg + nUpHalfSeg - 1 - j] = { XMFLOAT3{ r * xCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], r * zCoords[i] * projOnXZ[nUpHalfSeg - 1 - j], length + r * yCoords[nUpHalfSeg - 1 - j] } };
+		}
+	}
+	vertices[2 * nVertSeg * nUpHalfSeg] = { XMFLOAT3{ 0, 0, -r } };
+	vertices[2 * nVertSeg * nUpHalfSeg + 1] = { XMFLOAT3{ 0, 0, length + r } };
+
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(caps_vertex) * (nVertSeg * nUpHalfSeg * 2 + 2);
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = vertices;
+
+	if (pCapsVertices) pCapsVertices->Release();
+	hr = RendererCore::Get()->GetDevice()->CreateBuffer(&bd, &InitData, &pCapsVertices);
+	if (FAILED(hr))
+		return false;
+	CopyNameToDebugObjectName(pCapsVertices);
+
+	return true;
+}
+
 void Capsule::InitStatic()
 {
 	//projections for compute vertex buffer
@@ -235,6 +274,118 @@ float Capsule::DistanceToPoint(DirectX::XMFLOAT3 p)
 	return sqrt((-vec.x + dir.x*t)*(-vec.x + dir.x*t) + (-vec.y + dir.y*t)*(-vec.y + dir.y*t) + (-vec.z + dir.z*t)*(-vec.z + dir.z*t)) - p0.w;
 }
 
+float Capsule::DistanceFromAxisToPoint(DirectX::XMFLOAT3 p)
+{
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	XMFLOAT3 vec = Float3Substruct(p, p0);
+
+	float t = Float3DotProduct(vec, dir) / Float3DotProduct(dir, dir);
+	return sqrt((-vec.x + dir.x*t)*(-vec.x + dir.x*t) + (-vec.y + dir.y*t)*(-vec.y + dir.y*t) + (-vec.z + dir.z*t)*(-vec.z + dir.z*t)) - p0.w;
+}
+
+float Capsule::AxialDistanceToPoint(DirectX::XMFLOAT3 p)
+{
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	XMFLOAT3 vec = Float3Substruct(p, p0);
+
+	return Float3DotProduct(vec, dir) / sqrt(Float3DotProduct(dir, dir));
+}
+
+void Capsule::ToSphere(XMFLOAT3 centre, float radius) {
+	p0 = XMFLOAT4(centre.x, centre.y, centre.z, radius);
+	p1 = XMFLOAT4(centre.x, centre.y, centre.z, radius);
+
+	Reshape();
+}
+
+bool Capsule::OptimizeBy2PointsAndSet(DirectX::XMFLOAT3 c0, DirectX::XMFLOAT3 c1, std::vector<DirectX::XMFLOAT3> points)
+{
+	p0 = XMFLOAT4(c0.x, c0.y, c0.z, 0.0f);
+	p1 = XMFLOAT4(c1.x, c1.y, c1.z, 0.0f);
+
+	float dist = 0.0f;
+	for (int i = 0; i < points.size(); i++) {
+		dist += DistanceToPoint(points[i]);
+	}
+	dist = dist / points.size();
+
+	p0.w = p1.w = dist;
+	Reshape();
+	return true;
+}
+
+bool Capsule::OptimizeBy2PointsAnd2Sets(DirectX::XMFLOAT3 c0, DirectX::XMFLOAT3 c1, std::vector<DirectX::XMFLOAT3> points, std::vector<DirectX::XMFLOAT3> mainPoints)
+{
+	p0 = XMFLOAT4(c0.x, c0.y, c0.z, 0.0f);
+	p1 = XMFLOAT4(c1.x, c1.y, c1.z, 0.0f);
+
+	float dist = 0.0f;
+	for (int i = 0; i < points.size(); i++) {
+		dist += DistanceFromAxisToPoint(points[i]);
+	}
+	for (int i = 0; i < mainPoints.size(); i++) {
+		//dist += 3.0f * AxisDistanceToPoint(mainPoints[i]);
+		dist += ((float)points.size() / mainPoints.size()) * DistanceFromAxisToPoint(mainPoints[i]);
+	}
+	dist = dist / (1.5f*points.size()/* + mainPoints.size()*/);
+
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	dir = Float3ScalarMult(dir, (1.0f/Float3Length(dir))*0.5f*dist);
+	XMFLOAT3 vec = Float3Sum(p0, dir);
+	p0 = XMFLOAT4(vec.x, vec.y, vec.z, dist);
+	vec = Float3Substruct(p1, dir);
+	p1 = XMFLOAT4(vec.x, vec.y, vec.z, dist);
+
+	p0.w = p1.w = dist;
+	Reshape();
+	return true;
+}
+
+bool Capsule::OptimizeByPointAndSet(DirectX::XMFLOAT3 c0, std::vector<DirectX::XMFLOAT3> points)
+{
+	p0 = XMFLOAT4(c0.x, c0.y, c0.z, 0.0f);
+
+	XMFLOAT3 p = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i < points.size(); i++) {
+		p = Float3Sum(p, points[i]);
+	}
+	p = Float3ScalarMult(p, 1.0f / points.size());
+	p1 = XMFLOAT4(p.x, p.y, p.z, 0.0f);
+
+	float dist = 0.0f;
+	float maxAxialDistanse = 0;
+	float axialDistanse = 0;
+	for (int i = 0; i < points.size(); i++) {
+		dist += DistanceFromAxisToPoint(points[i]);
+		axialDistanse = AxialDistanceToPoint(points[i]);
+		if (axialDistanse > maxAxialDistanse)
+			maxAxialDistanse = axialDistanse;
+	}
+	dist = dist / points.size();
+
+	XMFLOAT3 dir = Float3Substruct(p1, p0);
+	dir = Float3ScalarMult(dir, (1.0f / Float3Length(dir)));
+	XMFLOAT3 vec = Float3Sum(p0, Float3ScalarMult(dir, (maxAxialDistanse - 0.5f*dist)));
+	p1 = XMFLOAT4(vec.x, vec.y, vec.z, dist);
+
+	p0.w = p1.w = dist;
+	Reshape();
+	return true;
+}
+
+bool Capsule::ShiftToPoint(DirectX::XMFLOAT4 p) {
+	float r = p0.w;
+	XMFLOAT3 dir = Float3Substruct(p, p0);
+
+	XMFLOAT3 vec = Float3Sum(p0, dir);
+	p0 = XMFLOAT4(vec.x, vec.y, vec.z, r);
+
+	vec = Float3Sum(p1, dir);
+	p1 = XMFLOAT4(vec.x, vec.y, vec.z, r);
+	Reshape();
+	return true;
+}
+
 bool Capsule::OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points)
 {
 	XMFLOAT3 m = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -332,6 +483,8 @@ bool Capsule::OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points)
 	p0.w = 1.0f;
 	XMStoreFloat4(&p1, V2);
 	p1.w = 1.0f;
+
+	Reshape();
 	return true;
 }
 

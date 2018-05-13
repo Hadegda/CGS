@@ -31,7 +31,15 @@ public:
 
 	float GetVolume();
 	float DistanceToPoint(DirectX::XMFLOAT3 p);
+	float DistanceFromAxisToPoint(DirectX::XMFLOAT3 p);
+	float AxialDistanceToPoint(DirectX::XMFLOAT3 p);
 	bool OptimizeForPointSet(std::vector<DirectX::XMFLOAT3> points);
+	bool OptimizeBy2PointsAndSet(DirectX::XMFLOAT3 c0, DirectX::XMFLOAT3 c1, std::vector<DirectX::XMFLOAT3> points);
+	bool OptimizeByPointAndSet(DirectX::XMFLOAT3 c0, std::vector<DirectX::XMFLOAT3> points);
+	bool OptimizeBy2PointsAnd2Sets(DirectX::XMFLOAT3 c0, DirectX::XMFLOAT3 c1, std::vector<DirectX::XMFLOAT3> points, std::vector<DirectX::XMFLOAT3> mainPoints);
+	bool ShiftToPoint(DirectX::XMFLOAT4 p);
+
+	void ToSphere(DirectX::XMFLOAT3 centre, float radius);
 
 	Capsule(DirectX::XMFLOAT3 color);
 	~Capsule();
@@ -41,6 +49,8 @@ public:
 
 private:
 	DirectX::XMFLOAT3 color;
+
+	bool Reshape();
 
 	bool CreateBuffers();
 	ID3D11Buffer* pCapsVertices;

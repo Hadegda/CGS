@@ -105,7 +105,69 @@ float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
 	return dist;
 }
 
-void Skeleton::OptimizeCapsules() {
+#include <set>
+
+bool Skeleton::OptimizeCapsules() {
+
+	std::vector<std::set<UINT>> pointsOfAdjacentCaps;
+	pointsOfAdjacentCaps.clear();
+	pointsOfAdjacentCaps.resize(caps.size() - 1);
+
+	UINT min, max;
+	for (int i = 0; i < lineList.size(); i += 2) {
+		UINT c0 = (*capsForVertices[lineList[i]].begin()).second;
+		UINT c1 = (*capsForVertices[lineList[i + 1]].begin()).second;
+
+		if (c0 < c1) {
+			min = c0, max = c1;
+		}
+		else {
+			min = c1, max = c0;
+		}
+
+		if (max - min == 1 && min != 3 && min != 6 && min != 9 && min != 12) {
+			pointsOfAdjacentCaps[min].insert(lineList[i]);
+			pointsOfAdjacentCaps[min].insert(lineList[i+1]);
+			continue;
+		}
+		if (min == 0) {
+			if (max == 4 || max == 7 || max == 10 || max == 13) {
+				pointsOfAdjacentCaps[max - 1].insert(lineList[i]);
+				pointsOfAdjacentCaps[max - 1].insert(lineList[i+1]);
+			}
+		}
+	}
+
+	std::vector<XMFLOAT3> junctionPoints;
+	junctionPoints.clear();
+	junctionPoints.resize(pointsOfAdjacentCaps.size());
+	std::vector<bool> hasJunctionPoint;
+	hasJunctionPoint.clear();
+	hasJunctionPoint.resize(pointsOfAdjacentCaps.size());
+	for (int i = 0; i < pointsOfAdjacentCaps.size(); i++) {
+		junctionPoints[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		std::set<UINT>::iterator pcur, pend;
+		pcur = pointsOfAdjacentCaps[i].begin();
+		pend = pointsOfAdjacentCaps[i].end();
+		while (pcur != pend)
+		{
+			XMFLOAT3 cur = vertices[(*pcur)];
+			junctionPoints[i] = Float3Sum(junctionPoints[i], cur);
+			pcur++;
+		}
+		if (pointsOfAdjacentCaps[i].size() != 0) {
+			junctionPoints[i] = Float3ScalarMult(junctionPoints[i], 1.0f / (pointsOfAdjacentCaps[i].size()));
+			hasJunctionPoint[i] = true;
+		}
+		else {
+			hasJunctionPoint[i] = false;
+		}
+		//caps[i]->ToSphere(junctionPoints[i],1.0f);
+	}
+
+	if (!hasJunctionPoint[0] || !hasJunctionPoint[3] || !hasJunctionPoint[6] || !hasJunctionPoint[9])
+		return false;
+
 	std::vector<XMFLOAT3> pointSet;
 	for (int j = 0; j < caps.size(); j++) {
 		pointSet.clear();
@@ -113,8 +175,62 @@ void Skeleton::OptimizeCapsules() {
 		for (int i = 0; i < pointSet.size(); i++) {
 			pointSet[i] = vertices[verticesForCaps[j][i]];
 		}
-		caps[j]->OptimizeForPointSet(pointSet);
+
+		if (j == 1 || j == 2 || j == 4 || j == 5 || j == 7 || j == 8 || j == 10 || j == 11) {
+			if (hasJunctionPoint[j - 1] == true && hasJunctionPoint[j] == true)
+				caps[j]->OptimizeBy2PointsAndSet(junctionPoints[j - 1], junctionPoints[j], pointSet);
+			else {
+				if(j == 1 || j == 4)
+					caps[j]->ShiftToPoint(caps[j - 1]->p0);
+				else
+					caps[j]->ShiftToPoint(caps[j - 1]->p1);
+			}
+		}
+		else
+			if (j == 0) {
+				std::vector<XMFLOAT3> mainPointSet(4);
+				XMFLOAT3 p0 = Float3Sum(junctionPoints[0], junctionPoints[3]);
+				p0 = Float3ScalarMult(p0, 0.5f);
+				XMFLOAT3 p1 = Float3Sum(junctionPoints[6], junctionPoints[9]);
+				if (hasJunctionPoint[12]) {
+					p1 = Float3Sum(p1, XMFLOAT3(junctionPoints[12]));
+					p1 = Float3ScalarMult(p1, 1.0f / 3.0f);
+					mainPointSet.resize(5);
+					mainPointSet[4] = junctionPoints[12];
+				}
+				else {
+					p1 = Float3ScalarMult(p1, 1.0f / 2.0f);
+				}
+				mainPointSet[0] = junctionPoints[0];
+				mainPointSet[1] = junctionPoints[3];
+				mainPointSet[2] = junctionPoints[6];
+				mainPointSet[3] = junctionPoints[9];
+				caps[j]->OptimizeBy2PointsAnd2Sets (p0, p1, pointSet, mainPointSet);
+			}
+			else
+				if (hasJunctionPoint[j - 1] == true && pointSet.size() > 2)
+					caps[j]->OptimizeByPointAndSet(junctionPoints[j - 1], pointSet);
+				else {
+					if(j != caps.size() - 1)
+						caps[j]->ShiftToPoint(caps[j - 1]->p1);
+					else {
+						XMFLOAT3 dir = Float3Substruct(caps[0]->p1, caps[0]->p0);
+						XMFLOAT3 p = Float3Sum(caps[0]->p1, Float3ScalarMult(dir, (1.0f / Float3Length(dir)) * caps[0]->p0.w));
+						caps[j]->ShiftToPoint(XMFLOAT4(p.x, p.y, p.z, 1.0f));
+					}
+				}
 	}
+
+	/*std::vector<XMFLOAT3> pointSet;
+	for (int j = 0; j < caps.size(); j++) {
+		pointSet.clear();
+		pointSet.resize(verticesForCaps[j].size());
+		for (int i = 0; i < pointSet.size(); i++) {
+			pointSet[i] = vertices[verticesForCaps[j][i]];
+		}
+		caps[j]->OptimizeForPointSet(pointSet);
+	}*/
+	return true;
 }
 
 
