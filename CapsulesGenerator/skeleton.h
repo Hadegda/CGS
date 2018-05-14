@@ -13,7 +13,7 @@
 class Skeleton {
 public:
 	void Mutation(int level, int n = 0);
-	float Distance(std::vector<UINT>* vertexClasters);
+	float Distance(std::vector<UINT>* vertexClasters, float volume);
 	bool OptimizeCapsules();
 
 	void DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency);
@@ -39,8 +39,7 @@ public:
 	std::vector<float> parameters;
 
 private:
-	void CorrectionOnRadius();
-	void CorrectionOnMaxShift();
+	void CorrectionSkeleton();
 
 	void MutationAll();
 	void OneGenMutation(int n);

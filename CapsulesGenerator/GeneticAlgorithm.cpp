@@ -449,13 +449,6 @@ void GeneticAlgorithm::NextOptimize(bool mutationTime) {
 	pcur = breed.begin();
 	pend = breed.end();
 
-	/*while (pcur != pend)
-	{
-		(*pcur).second->individ->OptimizeCapsules();
-		Distance((*pcur).second->individ);
-		pcur++;
-	}*/
-
 	Select(DEAD_PART);
 	CreateNextBreed(COUNT_BIRTH_FROM_TWO_PARENTS, COUNT_TRIES_BIRTH_FROM_ONE_PARENT, oldBreed, individSurvival);
 
@@ -515,7 +508,7 @@ float GeneticAlgorithm::Distance(Skeleton *skeleton)
 	
 	std::vector<UINT> clasters(allFrameData[curFrame].vertexData.size());
 
-	float dist = skeleton->Distance(&clasters);
+	float dist = skeleton->Distance(&clasters, allFrameData[curFrame].volume);
 
 	if (allFrameData[curFrame].pGenVertices) allFrameData[curFrame].pGenVertices->Release();
 

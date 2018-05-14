@@ -3,15 +3,37 @@
 
 using namespace DirectX;
 
-float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
-	float dist = 0.0f;
+float Skeleton::Distance(std::vector<UINT>* vertexClasters, float volume) {
+	float distance = 0.0f;
 	for (int i = 0; i < vertices.size(); i++) {
 		(*vertexClasters)[i] = (*capsForVertices[i].begin()).second;
 		float d = (*capsForVertices[i].begin()).first;
-		if (d > 0)
-			dist += d*d;
+		if(d > 0)
+			distance += d*d;
 	}
-	dist = sqrt(dist);
+	distance = sqrt(distance);
+
+	float skeletonVolume = 0.0f;
+	for (int i = 0; i < caps.size(); i++) {
+		skeletonVolume += caps[i]->GetVolume();
+	}
+
+	distance += 10 * abs(volume - skeletonVolume) / volume;
+
+	/*float distance = 1.0f;
+	std::vector<float> dist(caps.size());
+	for (int i = 0; i < dist.size(); i++)
+		dist[i] = 0.0f;
+	for (int i = 0; i < vertices.size(); i++) {
+		(*vertexClasters)[i] = (*capsForVertices[i].begin()).second;
+		float d = (*capsForVertices[i].begin()).first;
+		dist[(*vertexClasters)[i]] += d*d;
+	}
+	for (int i = 0; i < dist.size(); i++) {
+		dist[i] = sqrt(dist[i]);
+		distance *= (1.0f + dist[i]);
+	}
+	distance = 20.0f * 1.0f / pow(distance, 1.0f/dist.size());*/
 
 	for (int i = 0; i < lineList.size(); i += 2) {
 		UINT c0 = (*capsForVertices[lineList[i]].begin()).second;
@@ -19,77 +41,77 @@ float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
 		switch (c0) {
 		case 0:
 			if (c1 != 0 && c1 != 1 && c1 != 4 && c1 != 7 && c1 != 10 && c1 != 13)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 1:
 			if (c1 != 0 && c1 != 1 && c1 != 2)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 2:
 			if (c1 != 1 && c1 != 2 && c1 != 3)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 3:
 			if (c1 != 2 && c1 != 3)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 4:
 			if (c1 != 0 && c1 != 4 && c1 != 5)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 5:
 			if (c1 != 4 && c1 != 5 && c1 != 6)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 6:
 			if (c1 != 5 && c1 != 6)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 7:
 			if (c1 != 0 && c1 != 7 && c1 != 8)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 8:
 			if (c1 != 7 && c1 != 8 && c1 != 9)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 9:
 			if (c1 != 8 && c1 != 9)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 10:
 			if (c1 != 0 && c1 != 10 && c1 != 11)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 11:
 			if (c1 != 00 && c1 != 11 && c1 != 12)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 12:
 			if (c1 != 11 && c1 != 12)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 
 		case 13:
 			if (c1 != 0 && c1 != 13)
-				dist += 0.2f;
+				distance += 0.2f;
 			break;
 		}
 	}
 
-	return dist;
+	return distance;
 }
 
 bool Skeleton::OptimizeCapsules() {
@@ -218,7 +240,25 @@ void Skeleton::Mutation(int level, int n) {
 			OneGenMutation(n);
 	}
 
-	CorrectionOnRadius();
+	UpdateForNewParameters();
+	CorrectionSkeleton();
+	UpdateForNewCapsules();
+
+	capsForVertices.clear();
+	capsForVertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++) {
+		capsForVertices[i].clear();
+	}
+	DistributeVertices();
+
+	verticesForCaps.clear();
+	verticesForCaps.resize(caps.size());
+	for (int i = 0; i < caps.size(); i++) {
+		verticesForCaps[i].clear();
+	}
+	for (int i = 0; i < vertices.size(); i++) {
+		verticesForCaps[(*capsForVertices[i].begin()).second].push_back((UINT)i);
+	}
 }
 
 void Skeleton::MutationAll() {
@@ -235,7 +275,6 @@ void Skeleton::MutationAll() {
 			parameters[n] = parameters[n] + (val - 1.0f) / 2.0f;//  * (val*2.0f - 2.0f); //(val - 1.0f);// * *(parameters[n]);
 		}
 	}
-	UpdateForNewParameters();
 }
 
 void Skeleton::OneGenMutation(int n)
@@ -248,7 +287,6 @@ void Skeleton::OneGenMutation(int n)
 		float val = (float)((float)rand() / RAND_MAX) * 2.0f;
 		parameters[n] = parameters[n] + (val - 1.0f) / 2.0f;// *(val*2.0f - 2.0f); // * *(parameters[n]);
 	}
-	UpdateForNewParameters();
 }
 
 void Skeleton::OneCapsuleMutation(int n)
@@ -276,11 +314,11 @@ void Skeleton::OneCapsuleMutation(int n)
 		parameters[9 * n + 6] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[9 * n + 6];
 		parameters[9 * n + 7] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[9 * n + 7];
 	}
-	UpdateForNewParameters();
 }
 
 
-void Skeleton::CorrectionOnRadius() {
+void Skeleton::CorrectionSkeleton() {
+
 	/*if (leftLeg0.shift.w > torso.radius || rightLeg0.shift.w > torso.radius) {
 		if (leftLeg0.shift.w > torso.radius) leftLeg0.shift.w = torso.radius;
 		if (rightLeg0.shift.w > torso.radius) rightLeg0.shift.w = torso.radius;
@@ -299,26 +337,6 @@ void Skeleton::CorrectionOnRadius() {
 	leftArm2.shift.w = (leftArm2.shift.w > leftArm1.radius) ? leftArm1.radius : leftArm2.shift.w;
 	rightArm1.shift.w = (rightArm1.shift.w > rightArm0.radius) ? rightArm0.radius : rightArm1.shift.w;
 	rightArm2.shift.w = (rightArm2.shift.w > rightArm1.radius) ? rightArm1.radius : rightArm2.shift.w;*/
-}
-
-void Skeleton::CorrectionOnMaxShift() {
-	/*if (leftLeg0.shift.w > torso.radius || rightLeg0.shift.w > torso.radius) {
-		torso.radius = (leftLeg0.shift.w > rightLeg0.shift.w) ? leftLeg0.shift.w : rightLeg0.shift.w;
-	}
-	leftLeg0.radius = (leftLeg1.shift.w > leftLeg0.radius) ? leftLeg1.shift.w : leftLeg0.radius;
-	leftLeg1.radius = (leftLeg2.shift.w > leftLeg1.radius) ? leftLeg2.shift.w : leftLeg1.radius;
-	rightLeg0.radius = (rightLeg1.shift.w > rightLeg0.radius) ? rightLeg1.shift.w : rightLeg0.radius;
-	rightLeg1.radius = (rightLeg2.shift.w > rightLeg1.radius) ? rightLeg2.shift.w : rightLeg1.radius;
-
-	if (leftArm0.shift.w > torso.radius || rightArm0.shift.w > torso.radius || head.shift.w > torso.radius) {
-		torso.radius = (leftArm0.shift.w > rightArm0.shift.w) ? leftArm0.shift.w : rightArm0.shift.w;
-		torso.radius = (head.shift.w > torso.radius) ? head.shift.w : torso.radius;
-	}
-	leftArm0.radius = (leftArm1.shift.w > leftArm0.radius) ? leftArm1.shift.w : leftArm0.radius;
-	leftArm1.radius = (leftArm2.shift.w > leftArm1.radius) ? leftArm2.shift.w : leftArm1.radius;
-	rightArm0.radius = (rightArm1.shift.w > rightArm0.radius) ? rightArm1.shift.w : rightArm0.radius;
-	rightArm1.radius = (rightArm2.shift.w > rightArm1.radius) ? rightArm2.shift.w : rightArm1.radius;*/
-
 }
 
 void Skeleton::DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency)
@@ -413,13 +431,15 @@ Skeleton::Skeleton(Skeleton * parent0, Skeleton * parent1, DirectX::XMFLOAT3 col
 		float val = distribution(generator);
 		parameters[i] = val * (parent0->parameters[i]) + (1.0f - val) * (parent1->parameters[i]);
 	}
-	CorrectionOnRadius();
 
 	caps.clear();
 	caps.resize(parent0->GetCapsCount());
 	for (int i = 0; i < caps.size(); i++)
 		caps[i] = new Capsule(color);
 	UpdateForNewParameters();
+
+	CorrectionSkeleton();
+	UpdateForNewCapsules();
 
 	parent0->GetVertices(&vertices);
 	parent0->GetLineModelIndices(&lineList);
@@ -472,6 +492,7 @@ Skeleton::Skeleton(Skeleton * parent, bool onlyCopy, DirectX::XMFLOAT3 color)
 
 	if (!onlyCopy) {
 		OptimizeCapsules();
+		CorrectionSkeleton();
 		UpdateForNewCapsules();
 
 		capsForVertices.clear();

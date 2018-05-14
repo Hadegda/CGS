@@ -332,11 +332,11 @@ bool Capsule::OptimizeBy2PointsAnd2Sets(DirectX::XMFLOAT3 c0, DirectX::XMFLOAT3 
 	for (int i = 0; i < points.size(); i++) {
 		dist += DistanceFromAxisToPoint(points[i]);
 	}
-	for (int i = 0; i < mainPoints.size(); i++) {
+	/*for (int i = 0; i < mainPoints.size(); i++) {
 		//dist += 3.0f * AxisDistanceToPoint(mainPoints[i]);
 		dist += ((float)points.size() / mainPoints.size()) * DistanceFromAxisToPoint(mainPoints[i]);
-	}
-	dist = dist / (1.5f*points.size()/* + mainPoints.size()*/);
+	}*/
+	dist = dist / (/*1.5f**/points.size()/* + mainPoints.size()*/);
 
 	XMFLOAT3 dir = Float3Substruct(p1, p0);
 	dir = Float3ScalarMult(dir, (1.0f/Float3Length(dir))*0.5f*dist);
