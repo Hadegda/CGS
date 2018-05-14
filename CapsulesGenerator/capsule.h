@@ -42,6 +42,7 @@ public:
 	void ToSphere(DirectX::XMFLOAT3 centre, float radius);
 
 	Capsule(DirectX::XMFLOAT3 color);
+	Capsule(Capsule* cap, DirectX::XMFLOAT3 color);
 	~Capsule();
 
 	DirectX::XMFLOAT4 p0;  //start point; radius

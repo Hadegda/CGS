@@ -10,7 +10,8 @@
 #define LIKELIHOOD_MUTATION 40.0f
 #define FREQUENCY_MUTATION 9
 #define DEAD_PART 0.5f
-#define COUNT_NEW_INDIVIDS 25
+#define COUNT_BIRTH_FROM_TWO_PARENTS 25
+#define COUNT_TRIES_BIRTH_FROM_ONE_PARENT 5
 #define COUNT_ITERATIONS 1
 
 #define LEVEL_MUTATION0 50.0f
@@ -77,7 +78,7 @@ private:
 	bool InitGAFrame(daliasframe_t* frame, GAdataForFrame* curFrame, std::vector<DirectX::XMUINT3> tris, const int nVertices);
 
 	void CreatefirstBreed();
-	void CreateNextBreed(int count, std::vector<Skeleton*> prevBreed, std::vector<float> individSurvival);
+	void CreateNextBreed(int count, int countOfOneParentsChildsTry, std::vector<Skeleton*> prevBreed, std::vector<float> individSurvival);
 	void Select(float deadPart);
 	void Mutation(float likelihoodMutation);
 

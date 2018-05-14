@@ -4,6 +4,7 @@
 #include <DirectXMath.h>
 #include <vector>
 #include <map>
+#include <set>
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 #include "capsule.h"
@@ -27,10 +28,12 @@ public:
 	int GetCapsCount();
 	void GetVertices(std::vector<DirectX::XMFLOAT3> *dstVertices);
 	void GetLineModelIndices(std::vector<UINT32> *dstLineModelIndices);
+	void GetCaps(std::vector<Capsule*> *dstCaps, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
 	float GetVolume();
 
 	Skeleton(PersonPattern* homo, std::vector<DirectX::XMFLOAT3> vertices, std::vector<UINT32> lineModelIndices, DirectX::XMFLOAT3 color);
 	Skeleton(Skeleton* parent0, Skeleton* parent1, DirectX::XMFLOAT3 color);
+	Skeleton(Skeleton* parent, bool onlyCopy, DirectX::XMFLOAT3 color);
 	~Skeleton();
 
 	std::vector<float> parameters;

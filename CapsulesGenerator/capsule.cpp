@@ -27,6 +27,15 @@ Capsule::Capsule(DirectX::XMFLOAT3 color)
 		InitStatic();
 }
 
+Capsule::Capsule(Capsule * cap, DirectX::XMFLOAT3 color)
+{
+	pCapsVertices = NULL;
+	pCapsIndices = NULL;
+	pCapsCBuffer = NULL;
+
+	Init(cap->p0, cap->p1, XMFLOAT3(-1.0f, 0.0f, 0.0f));
+}
+
 bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
 {
 	this->p0 = p0;

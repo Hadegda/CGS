@@ -1,6 +1,5 @@
 #include "skeleton.h"
 #include <random>
-#include <set>
 
 using namespace DirectX;
 
@@ -208,7 +207,6 @@ bool Skeleton::OptimizeCapsules() {
 	return true;
 }
 
-
 void Skeleton::Mutation(int level, int n) {
 	if (level == 0) {
 		MutationAll();
@@ -358,6 +356,13 @@ void Skeleton::GetLineModelIndices(std::vector<UINT32> *dstLineModelIndices) {
 		(*dstLineModelIndices)[i] = lineList[i];
 }
 
+void Skeleton::GetCaps(std::vector<Capsule*> *dstCaps, DirectX::XMFLOAT3 color) {
+	dstCaps->clear();
+	dstCaps->resize(caps.size());
+	for (int i = 0; i < caps.size(); i++)
+		(*dstCaps)[i] = new Capsule(caps[i], color);
+}
+
 Skeleton::Skeleton(PersonPattern* homo, std::vector<DirectX::XMFLOAT3> vertices, std::vector<UINT32> lineModelIndices, DirectX::XMFLOAT3 color)
 {
 	this->color = color;
@@ -434,6 +439,58 @@ Skeleton::Skeleton(Skeleton * parent0, Skeleton * parent1, DirectX::XMFLOAT3 col
 	for (int i = 0; i < vertices.size(); i++) {
 		verticesForCaps[(*capsForVertices[i].begin()).second].push_back((UINT)i);
 	}
+}
+
+Skeleton::Skeleton(Skeleton * parent, bool onlyCopy, DirectX::XMFLOAT3 color)
+{
+	this->color = color;
+
+	parent->GetCaps(&caps, color);
+
+	parameters.clear();
+	parameters.resize(parent->parameters.size());
+	UpdateForNewCapsules();
+
+	parent->GetVertices(&vertices);
+	parent->GetLineModelIndices(&lineList);
+
+	capsForVertices.clear();
+	capsForVertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++) {
+		capsForVertices[i].clear();
+	}
+	DistributeVertices();
+
+	verticesForCaps.clear();
+	verticesForCaps.resize(caps.size());
+	for (int i = 0; i < caps.size(); i++) {
+		verticesForCaps[i].clear();
+	}
+	for (int i = 0; i < vertices.size(); i++) {
+		verticesForCaps[(*capsForVertices[i].begin()).second].push_back((UINT)i);
+	}
+
+	if (!onlyCopy) {
+		OptimizeCapsules();
+		UpdateForNewCapsules();
+
+		capsForVertices.clear();
+		capsForVertices.resize(vertices.size());
+		for (int i = 0; i < vertices.size(); i++) {
+			capsForVertices[i].clear();
+		}
+		DistributeVertices();
+
+		verticesForCaps.clear();
+		verticesForCaps.resize(caps.size());
+		for (int i = 0; i < caps.size(); i++) {
+			verticesForCaps[i].clear();
+		}
+		for (int i = 0; i < vertices.size(); i++) {
+			verticesForCaps[(*capsForVertices[i].begin()).second].push_back((UINT)i);
+		}
+	}
+
 }
 
 Skeleton::~Skeleton()

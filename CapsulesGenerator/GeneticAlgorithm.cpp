@@ -341,7 +341,8 @@ unsigned ChooseIndex(vector<float> individSurvival) {
 	return individSurvival.size() - 1;
 }
 
-void GeneticAlgorithm::CreateNextBreed(int count, vector<Skeleton*> prevBreed, vector<float> individSurvival) {
+void GeneticAlgorithm::CreateNextBreed(int countTwoParentsChilds, int countOneParentsBirthTries, vector<Skeleton*> prevBreed, vector<float> individSurvival) {
+	//compute likelihood of survaival for all skeletons
 	vector<float> likelihoodSurvival;
 	likelihoodSurvival.resize(individSurvival.size());
 	float breedSurvival = 0;
@@ -353,16 +354,31 @@ void GeneticAlgorithm::CreateNextBreed(int count, vector<Skeleton*> prevBreed, v
 		likelihoodSurvival[i] = 100 * likelihoodSurvival[i] / breedSurvival;
 	}
 
-	for (int i = 0; i < count;) {
+	//from two parents
+	for (int i = 0; i < countTwoParentsChilds;) {
 		unsigned nParent0 = ChooseIndex(likelihoodSurvival);
 		unsigned nParent1 = ChooseIndex(likelihoodSurvival);
 
 		if (nParent0 == nParent1)
 			continue;
-		Skeleton* tmp = new Skeleton(prevBreed[nParent0], prevBreed[nParent1], DirectX::XMFLOAT3{ (float)i / count, 0.4f, 0.8f });
+
+		Skeleton* tmp = new Skeleton(prevBreed[nParent0], prevBreed[nParent1], DirectX::XMFLOAT3{ (float)i / countTwoParentsChilds, 0.4f, 0.8f });
 		breed.insert({ Distance(tmp), new Data(tmp) });
-		
 		i++;
+	}
+
+	//from one parents
+	std::set<unsigned> chosenParents;
+	chosenParents.clear();
+	for (int i = 0; i < countOneParentsBirthTries; i++) {
+		unsigned nParent = ChooseIndex(likelihoodSurvival);
+
+		if (chosenParents.find(nParent) != chosenParents.end())
+			continue;
+
+		chosenParents.insert(nParent);
+		Skeleton* tmp = new Skeleton(prevBreed[nParent], false, DirectX::XMFLOAT3{ (float)i / countTwoParentsChilds, 0.8f, 0.2f });
+		breed.insert({ Distance(tmp), new Data(tmp) });
 	}
 }
 
@@ -390,7 +406,7 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 	for (int i = 0; i < tmp.size(); i++) {
 		breed.erase(tmpKeys[i]);
 	}
-	/*int level = 2;
+	int level = 2;
 	int n = 0;
 	if ((*breed.begin()).first > LEVEL_MUTATION0) {
 		level = 0;
@@ -404,16 +420,16 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 			n = rand() % 125;
 			level = 2;
 		}
-	}*/
+	}
 	for (int i = 0; i < tmp.size(); i++) {
-		tmp[i]->individ->OptimizeCapsules();
+		tmp[i]->individ->Mutation(level, n);
 		breed.insert({ Distance(tmp[i]->individ), tmp[i] });
 	}
 }
 
 void GeneticAlgorithm::NextOptimize(bool mutationTime) {
-	/*if(mutationTime)
-		Mutation(LIKELIHOOD_MUTATION);*/
+	if(mutationTime)
+		Mutation(LIKELIHOOD_MUTATION);
 
 	vector<Skeleton*> oldBreed(breed.size());
 	vector<float> individSurvival(breed.size());
@@ -441,7 +457,7 @@ void GeneticAlgorithm::NextOptimize(bool mutationTime) {
 	}*/
 
 	Select(DEAD_PART);
-	CreateNextBreed(COUNT_NEW_INDIVIDS, oldBreed, individSurvival);
+	CreateNextBreed(COUNT_BIRTH_FROM_TWO_PARENTS, COUNT_TRIES_BIRTH_FROM_ONE_PARENT, oldBreed, individSurvival);
 
 	std::map<float, Data*>::iterator cur, end;
 	cur = breed.begin();
