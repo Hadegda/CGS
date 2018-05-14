@@ -342,7 +342,7 @@ unsigned ChooseIndex(vector<float> individSurvival) {
 }
 
 void GeneticAlgorithm::CreateNextBreed(int count, vector<Skeleton*> prevBreed, vector<float> individSurvival) {
-	/*vector<float> likelihoodSurvival;
+	vector<float> likelihoodSurvival;
 	likelihoodSurvival.resize(individSurvival.size());
 	float breedSurvival = 0;
 	for (int i = 0; i < breed.size(); i++) {
@@ -359,23 +359,21 @@ void GeneticAlgorithm::CreateNextBreed(int count, vector<Skeleton*> prevBreed, v
 
 		if (nParent0 == nParent1)
 			continue;
-		Skeleton* tmp = new Skeleton(DirectX::XMFLOAT3{ (float)i / count, 0.4f, 0.8f });
-		tmp->CreateFromParents(prevBreed[nParent0], prevBreed[nParent1], individSurvival[nParent0] / (individSurvival[nParent0] + individSurvival[nParent1]), individSurvival[nParent1] / (individSurvival[nParent0] + individSurvival[nParent1]));
-		tmp->CreateCaps();
+		Skeleton* tmp = new Skeleton(prevBreed[nParent0], prevBreed[nParent1], DirectX::XMFLOAT3{ (float)i / count, 0.4f, 0.8f });
 		breed.insert({ Distance(tmp), new Data(tmp) });
 		
 		i++;
-	}*/
+	}
 }
 
 void GeneticAlgorithm::Select(float deadPart) {
-	/*int deadCount = breed.size() * deadPart;
+	int deadCount = breed.size() * deadPart;
 
 	auto last = prev(breed.end());
 	for (int i = 0; i < deadCount; i++) {
 		(*last).second->mustDie = true;
 		last = prev(last);
-	}*/
+	}
 }
 
 void GeneticAlgorithm::Mutation(float likelihoodMutation) {
@@ -414,8 +412,8 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 }
 
 void GeneticAlgorithm::NextOptimize(bool mutationTime) {
-	//if(mutationTime)
-		//Mutation(LIKELIHOOD_MUTATION);
+	/*if(mutationTime)
+		Mutation(LIKELIHOOD_MUTATION);*/
 
 	vector<Skeleton*> oldBreed(breed.size());
 	vector<float> individSurvival(breed.size());
@@ -435,15 +433,15 @@ void GeneticAlgorithm::NextOptimize(bool mutationTime) {
 	pcur = breed.begin();
 	pend = breed.end();
 
-	while (pcur != pend)
+	/*while (pcur != pend)
 	{
 		(*pcur).second->individ->OptimizeCapsules();
 		Distance((*pcur).second->individ);
 		pcur++;
-	}
+	}*/
 
-	//Select(DEAD_PART);
-	//CreateNextBreed(COUNT_NEW_INDIVIDS, oldBreed, individSurvival);
+	Select(DEAD_PART);
+	CreateNextBreed(COUNT_NEW_INDIVIDS, oldBreed, individSurvival);
 
 	std::map<float, Data*>::iterator cur, end;
 	cur = breed.begin();

@@ -1,20 +1,8 @@
 #include "skeleton.h"
 #include <random>
+#include <set>
 
 using namespace DirectX;
-
-bool Skeleton::CreateFromParents(Skeleton * parent0, Skeleton * parent1, float impact0, float impact1) {
-	std::default_random_engine generator;
-	std::normal_distribution<float> distribution(0.5f, 0.25f);
-
-	for (int i = 0; i < 125; i++) {
-		float val = distribution(generator);
-		parameters[i] = val * (parent0->parameters[i]) + (1.0f-val) * (parent1->parameters[i]);
-	}
-	CorrectionOnRadius();
-	UpdateForNewParameters();
-	return true;
-}
 
 float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
 	float dist = 0.0f;
@@ -105,8 +93,6 @@ float Skeleton::Distance(std::vector<UINT>* vertexClasters) {
 	return dist;
 }
 
-#include <set>
-
 bool Skeleton::OptimizeCapsules() {
 
 	std::vector<std::set<UINT>> pointsOfAdjacentCaps;
@@ -162,7 +148,6 @@ bool Skeleton::OptimizeCapsules() {
 		else {
 			hasJunctionPoint[i] = false;
 		}
-		//caps[i]->ToSphere(junctionPoints[i],1.0f);
 	}
 
 	if (!hasJunctionPoint[0] || !hasJunctionPoint[3] || !hasJunctionPoint[6] || !hasJunctionPoint[9])
@@ -220,16 +205,6 @@ bool Skeleton::OptimizeCapsules() {
 					}
 				}
 	}
-
-	/*std::vector<XMFLOAT3> pointSet;
-	for (int j = 0; j < caps.size(); j++) {
-		pointSet.clear();
-		pointSet.resize(verticesForCaps[j].size());
-		for (int i = 0; i < pointSet.size(); i++) {
-			pointSet[i] = vertices[verticesForCaps[j][i]];
-		}
-		caps[j]->OptimizeForPointSet(pointSet);
-	}*/
 	return true;
 }
 
@@ -365,6 +340,24 @@ void Skeleton::DistributeVertices() {
 	}
 }
 
+int Skeleton::GetCapsCount() {
+	return caps.size();
+}
+
+void Skeleton::GetVertices(std::vector<DirectX::XMFLOAT3> *dstVertices) {
+	dstVertices->clear();
+	dstVertices->resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++)
+		(*dstVertices)[i] = vertices[i];
+}
+
+void Skeleton::GetLineModelIndices(std::vector<UINT32> *dstLineModelIndices) {
+	dstLineModelIndices->clear();
+	dstLineModelIndices->resize(lineList.size());
+	for (int i = 0; i < lineList.size(); i++)
+		(*dstLineModelIndices)[i] = lineList[i];
+}
+
 Skeleton::Skeleton(PersonPattern* homo, std::vector<DirectX::XMFLOAT3> vertices, std::vector<UINT32> lineModelIndices, DirectX::XMFLOAT3 color)
 {
 	this->color = color;
@@ -386,7 +379,46 @@ Skeleton::Skeleton(PersonPattern* homo, std::vector<DirectX::XMFLOAT3> vertices,
 	for (int i = 0; i < lineModelIndices.size(); i++)
 		lineList[i] = lineModelIndices[i];
 
-	//verticesForCaps.clear();
+	capsForVertices.clear();
+	capsForVertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++) {
+		capsForVertices[i].clear();
+	}
+	DistributeVertices();
+
+	verticesForCaps.clear();
+	verticesForCaps.resize(caps.size());
+	for (int i = 0; i < caps.size(); i++) {
+		verticesForCaps[i].clear();
+	}
+	for (int i = 0; i < vertices.size(); i++) {
+		verticesForCaps[(*capsForVertices[i].begin()).second].push_back((UINT)i);
+	}
+}
+
+Skeleton::Skeleton(Skeleton * parent0, Skeleton * parent1, DirectX::XMFLOAT3 color)
+{
+	this->color = color;
+
+	std::default_random_engine generator;
+	std::normal_distribution<float> distribution(0.5f, 0.25f);
+	parameters.clear();
+	parameters.resize(parent0->parameters.size());
+	for (int i = 0; i < parent0->parameters.size(); i++) {
+		float val = distribution(generator);
+		parameters[i] = val * (parent0->parameters[i]) + (1.0f - val) * (parent1->parameters[i]);
+	}
+	CorrectionOnRadius();
+
+	caps.clear();
+	caps.resize(parent0->GetCapsCount());
+	for (int i = 0; i < caps.size(); i++)
+		caps[i] = new Capsule(color);
+	UpdateForNewParameters();
+
+	parent0->GetVertices(&vertices);
+	parent0->GetLineModelIndices(&lineList);
+
 	capsForVertices.clear();
 	capsForVertices.resize(vertices.size());
 	for (int i = 0; i < vertices.size(); i++) {
