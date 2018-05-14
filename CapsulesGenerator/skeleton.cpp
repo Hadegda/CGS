@@ -18,7 +18,7 @@ float Skeleton::Distance(std::vector<UINT>* vertexClasters, float volume) {
 		skeletonVolume += caps[i]->GetVolume();
 	}
 
-	distance += 10 * abs(volume - skeletonVolume) / volume;
+	distance += 20 * abs(volume - skeletonVolume) / volume;
 
 	/*float distance = 1.0f;
 	std::vector<float> dist(caps.size());
