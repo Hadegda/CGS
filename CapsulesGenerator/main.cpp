@@ -154,8 +154,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			RendererCore::Get()->GetRenderer().isPlaying = !RendererCore::Get()->GetRenderer().isPlaying;
 			break;
 
+		case 'O':
+			RendererCore::Get()->GetRenderer().GetGA()->OptimizeAll();
+			break;
+
 		case VK_SPACE :
-			RendererCore::Get()->GetRenderer().GetGA()->Optimize(false);
+			RendererCore::Get()->GetRenderer().GetGA()->Optimize();
 			break;
 		}
 		break;

@@ -26,7 +26,7 @@ __forceinline void SetDebugObjectName(ID3D11DeviceChild* resource, const char(&n
 }
 
 #define CopyNameToDebugObjectName(resource)  SetDebugObjectName((resource), #resource)
-
+#define CopyResNameToDebugObjectName(resource, name)  SetDebugObjectName((resource), #name)
 
 class RendererCore : public Singleton<RendererCore> {
 public:

@@ -140,13 +140,13 @@ bool GeneticAlgorithm::InitGeneticAlgorithm(wchar_t * path)
 {
 	HRESULT hr = S_OK;
 
-	std::ifstream file;
-	file.open(path, std::ios::in | std::ios::binary);
-	if (file.fail())
+	std::ifstream mFile;
+	mFile.open(path, std::ios::in | std::ios::binary);
+	if (mFile.fail())
 		return false;
 
 	md2_header header;
-	file.read((char *)&header, sizeof(md2_header));
+	mFile.read((char *)&header, sizeof(md2_header));
 
 	const int nFrames = header.num_frames;
 	const int nVertices = header.num_xyz;
@@ -154,8 +154,8 @@ bool GeneticAlgorithm::InitGeneticAlgorithm(wchar_t * path)
 
 	std::vector<DirectX::XMUINT3> tris(nTris);
 	char* buffer = new char[nTris * sizeof(dtriangle_t)];
-	file.seekg(header.ofs_tris, std::ios::beg);
-	file.read((char *)buffer, nTris * sizeof(dtriangle_t));
+	mFile.seekg(header.ofs_tris, std::ios::beg);
+	mFile.read((char *)buffer, nTris * sizeof(dtriangle_t));
 
 	dtriangle_t* triangle;
 	for (int i = 0; i < nTris; i++) {
@@ -168,8 +168,8 @@ bool GeneticAlgorithm::InitGeneticAlgorithm(wchar_t * path)
 	delete[] buffer;
 
 	buffer = new char[nFrames * header.framesize];
-	file.seekg(header.ofs_frames, std::ios::beg);
-	file.read((char *)buffer, nFrames * header.framesize);
+	mFile.seekg(header.ofs_frames, std::ios::beg);
+	mFile.read((char *)buffer, nFrames * header.framesize);
 
 	allFrameData.clear();
 	allFrameData.resize(nFrames);
@@ -258,10 +258,60 @@ bool GeneticAlgorithm::InitGeneticAlgorithm(wchar_t * path)
 		return false;
 	CopyNameToDebugObjectName(pLineModelIndices);
 
-	Optimize(true);
+	mFile.close();
 
-	file.close();
+	wchar_t *ws2 = L".capsule";
+	sFileName = path;
+	sFileName += std::wstring(ws2);
+	std::ifstream sFile;
+	sFile.open(sFileName, std::ios::in | std::ios::binary);
+	hasSkeletonFile = (sFile.fail()) ? false : true;
+
+	if (hasSkeletonFile) {
+		sHeader h;
+		sFile.read((char*)&h, sizeof(sHeader));
+
+		std::vector<DirectX::XMFLOAT3> vertices(allFrameData[curFrame].vertexData.size());
+		for (int i = 0; i < vertices.size(); i++) {
+			vertices[i].x = allFrameData[curFrame].vertexData[i].vert.pos.x;
+			vertices[i].y = allFrameData[curFrame].vertexData[i].vert.pos.y;
+			vertices[i].z = allFrameData[curFrame].vertexData[i].vert.pos.z;
+		}
+
+		stCapsule *pCaps = new stCapsule[h.nCaps];
+		for (int i = 0; i < h.nFrames; i++) {
+			sFile.read((char*)pCaps, h.nCaps * sizeof(stCapsule));
+			allFrameData[i].bestSkeleton = new Skeleton(pCaps, h.nCaps, vertices, lineModelIndices, DirectX::XMFLOAT3{ 1.0f, 0.0f, 0.0f });
+		}
+		delete[] pCaps;
+	}
+	else {
+		for (curFrame = 0; curFrame < nFrames; curFrame++) {
+			CreateBaseSkeleton();
+		}
+	}
+
+	curFrame = 0;
+	nIter = -1;
+
 	return true;
+}
+
+void GeneticAlgorithm::CreateBaseSkeleton()
+{
+	std::vector<DirectX::XMFLOAT3> vertices(allFrameData[curFrame].vertexData.size());
+	for (int i = 0; i < vertices.size(); i++) {
+		vertices[i].x = allFrameData[curFrame].vertexData[i].vert.pos.x;
+		vertices[i].y = allFrameData[curFrame].vertexData[i].vert.pos.y;
+		vertices[i].z = allFrameData[curFrame].vertexData[i].vert.pos.z;
+	}
+
+	PersonPattern* person;
+	person = new PersonPattern();
+	person->Scale((allFrameData[curFrame].bBox.max.z - allFrameData[curFrame].bBox.min.z));
+	person->Centered(allFrameData[curFrame].center);
+	allFrameData[curFrame].bestSkeleton = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 1.0f, 0.0f, 0.0f });
+	delete person;
 }
 
 void GeneticAlgorithm::CreatefirstBreed()
@@ -323,6 +373,25 @@ void GeneticAlgorithm::CreatefirstBreed()
 	person->DropForward();
 	tmp = new Skeleton(person, vertices, lineModelIndices, DirectX::XMFLOAT3{ 0.0f, 1.0f, 1.0f });
 	breed.insert({ Distance(tmp), new Data(tmp) });
+
+	/*std::pair<std::map<float, Data*>::iterator, bool> res;
+	int ind = (curFrame + 1 < allFrameData.size()) ? curFrame + 1 : 0; // next
+	tmp = new Skeleton(allFrameData[ind].bestSkeleton, true, DirectX::XMFLOAT3{ 0.0f, 1.0f, 1.0f });
+	res = breed.insert({ Distance(tmp), new Data(tmp) });
+	if (res.second == 0)
+		delete tmp;
+
+	tmp = new Skeleton(allFrameData[0].bestSkeleton, true, DirectX::XMFLOAT3{ 0.0f, 1.0f, 1.0f });
+	res = breed.insert({ Distance(tmp), new Data(tmp) });
+	if (res.second == 0)
+		delete tmp;*/
+
+	std::pair<std::map<float, Data*>::iterator, bool> res;
+	int ind = (curFrame > 0) ? curFrame - 1 : allFrameData.size() - 1; // prev
+	tmp = new Skeleton(allFrameData[ind].bestSkeleton, true, DirectX::XMFLOAT3{ 0.0f, 1.0f, 1.0f });
+	res = breed.insert({ Distance(tmp), new Data(tmp) });
+	if (res.second == 0)
+		delete tmp;
 	delete person;
 }
 
@@ -354,6 +423,7 @@ void GeneticAlgorithm::CreateNextBreed(int countTwoParentsChilds, int countOnePa
 		likelihoodSurvival[i] = 100 * likelihoodSurvival[i] / breedSurvival;
 	}
 
+	std::pair<std::map<float, Data*>::iterator, bool> res;
 	//from two parents
 	for (int i = 0; i < countTwoParentsChilds;) {
 		unsigned nParent0 = ChooseIndex(likelihoodSurvival);
@@ -361,9 +431,10 @@ void GeneticAlgorithm::CreateNextBreed(int countTwoParentsChilds, int countOnePa
 
 		if (nParent0 == nParent1)
 			continue;
-
-		Skeleton* tmp = new Skeleton(prevBreed[nParent0], prevBreed[nParent1], DirectX::XMFLOAT3{ (float)i / countTwoParentsChilds, 0.4f, 0.8f });
-		breed.insert({ Distance(tmp), new Data(tmp) });
+		Skeleton* tmp = new Skeleton(prevBreed[nParent0], prevBreed[nParent1], DirectX::XMFLOAT3{ 0.4f, (float)i / countTwoParentsChilds, 0.4f });
+		res = breed.insert({ Distance(tmp), new Data(tmp) });
+		if (res.second == 0)
+			delete tmp;
 		i++;
 	}
 
@@ -378,7 +449,9 @@ void GeneticAlgorithm::CreateNextBreed(int countTwoParentsChilds, int countOnePa
 
 		chosenParents.insert(nParent);
 		Skeleton* tmp = new Skeleton(prevBreed[nParent], false, DirectX::XMFLOAT3{ (float)i / countTwoParentsChilds, 0.8f, 0.2f });
-		breed.insert({ Distance(tmp), new Data(tmp) });
+		res = breed.insert({ Distance(tmp), new Data(tmp) });
+		if (res.second == 0)
+			delete tmp;
 	}
 }
 
@@ -393,8 +466,10 @@ void GeneticAlgorithm::Select(float deadPart) {
 }
 
 void GeneticAlgorithm::Mutation(float likelihoodMutation) {
-	vector<Data*> tmp(0);
-	vector<float> tmpKeys(0);
+	vector<Data*> tmp;
+	vector<float> tmpKeys;
+	tmp.clear();
+	tmpKeys.clear();
 
 	for (const auto& elem : breed) {
 		if ((float)(rand() % 101) < likelihoodMutation) {
@@ -403,9 +478,6 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 		}
 	}
 
-	for (int i = 0; i < tmp.size(); i++) {
-		breed.erase(tmpKeys[i]);
-	}
 	int level = 2;
 	int n = 0;
 	if ((*breed.begin()).first > LEVEL_MUTATION0) {
@@ -421,9 +493,28 @@ void GeneticAlgorithm::Mutation(float likelihoodMutation) {
 			level = 2;
 		}
 	}
+
+	std::map<float, Data*>::iterator pcur, pend;
+	std::pair<std::map<float, Data*>::iterator, bool> res;
 	for (int i = 0; i < tmp.size(); i++) {
-		tmp[i]->individ->Mutation(level, n);
-		breed.insert({ Distance(tmp[i]->individ), tmp[i] });
+		pcur = breed.begin();
+		pend = breed.end();
+
+		while (pcur != pend)
+		{
+			if ((*pcur).first == tmpKeys[i]) {
+				Skeleton* tmp = new Skeleton((*pcur).second->individ, false, DirectX::XMFLOAT3{ 0.0f, 0.8f, 0.2f });
+				tmp->Mutation(level, n);
+				delete (*pcur).second;
+				breed.erase(pcur);
+				res = breed.insert({ Distance(tmp), new Data(tmp) });
+				if (res.second == 0)
+					delete tmp;
+				break;
+			}
+			else
+				pcur++;
+		}
 	}
 }
 
@@ -468,15 +559,15 @@ void GeneticAlgorithm::NextOptimize(bool mutationTime) {
 	return;
 }
 
-void GeneticAlgorithm::Optimize(bool isItStartGA)
+void GeneticAlgorithm::Optimize()
 {
-	if (isItStartGA) {
+	if (nIter == -1) {
 		CreatefirstBreed();
 		nIter = 0;
 		return;
 	}
 
-	for (int k = 0; k < COUNT_ITERATIONS; k++, nIter++) {
+	for (int k = 0; k < COUNT_ITERATIONS_IN_STEP; k++, nIter++) {
 		if ((*breed.begin()).first < 1.0f) {
 			break;
 		}
@@ -487,25 +578,41 @@ void GeneticAlgorithm::Optimize(bool isItStartGA)
 	}
 }
 
+void GeneticAlgorithm::OptimizeAll() {
+	int oldCurFrame = curFrame;
+	for (curFrame = 0; curFrame < allFrameData.size(); curFrame++) {
+		nIter = -1;
+		for (int i = 0; i < COUNT_ITERATIONS; i++) {
+			Optimize();
+		}
+		delete allFrameData[curFrame].bestSkeleton;
+		allFrameData[curFrame].bestSkeleton = new Skeleton((*breed.begin()).second->individ, true, DirectX::XMFLOAT3{ 0.9f, 0.8f, 0.2f });
+	}
+	nIter = -1;
+	curFrame = oldCurFrame;
+	SaveAll();
+}
+
 void GeneticAlgorithm::NextFrame(){
+	if (nIter != -1) {
+		delete allFrameData[curFrame].bestSkeleton;
+		allFrameData[curFrame].bestSkeleton = new Skeleton((*breed.begin()).second->individ, true, DirectX::XMFLOAT3{ 0.9f, 0.8f, 0.2f });
+	}
 	curFrame = (curFrame + 1 < allFrameData.size()) ? curFrame + 1 : 0;
-	Optimize(true);
+	nIter = -1;
 }
 
 void GeneticAlgorithm::PrevFrame(){
+	if (nIter != -1) {
+		delete allFrameData[curFrame].bestSkeleton;
+		allFrameData[curFrame].bestSkeleton = new Skeleton((*breed.begin()).second->individ, true, DirectX::XMFLOAT3{ 0.9f, 0.8f, 0.2f });
+	}
 	curFrame = (curFrame > 0) ? curFrame - 1 : allFrameData.size() - 1;
-	Optimize(true);
+	nIter = -1;
 }
 
 float GeneticAlgorithm::Distance(Skeleton *skeleton)
 {
-	/*for (int i = 0; i < nVertInsideCapsule.size(); i++) {
-		if (nVertInsideCapsule[i] < 5) {
-			qdist += 50.0f;
-			continue;
-		}
-	}*/
-	
 	std::vector<UINT> clasters(allFrameData[curFrame].vertexData.size());
 
 	float dist = skeleton->Distance(&clasters, allFrameData[curFrame].volume);
@@ -551,24 +658,30 @@ void GeneticAlgorithm::DrawModelBBox()
 }
 
 void GeneticAlgorithm::DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency){
-	for (const auto& elem : breed)
-		elem.second->individ->DrawSkeleton(world, light, 20.0f);
+	if (nIter != -1) {
+		for (const auto& elem : breed)
+			elem.second->individ->DrawSkeleton(world, light, 20.0f);
+		return;
+	}
+	allFrameData[curFrame].bestSkeleton->DrawSkeleton(world, 1.0f, 20.0f);
 }
 
 void GeneticAlgorithm::DrawBestSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency) {
-	(*breed.begin()).second->individ->DrawSkeleton(world, -1.0f, 20.0f);
+	if (nIter != -1) {
+		(*breed.begin()).second->individ->DrawSkeleton(world, -1.0f, 20.0f);
+		return;
+	}
+	allFrameData[curFrame].bestSkeleton->DrawSkeleton(world, 1.0f, 20.0f);
 }
 
 void GeneticAlgorithm::DrawLineModel()
 {
-	Distance((*breed.begin()).second->individ);
 	UINT strides[] = { sizeof(gen_vertex) };
 	UINT offsets[] = { 0 };
 	RendererCore::Get()->GetDeviceContext()->IASetVertexBuffers(0, 1, &allFrameData[curFrame].pGenVertices, strides, offsets);
 	RendererCore::Get()->GetDeviceContext()->IASetIndexBuffer(pLineModelIndices, DXGI_FORMAT_R32_UINT, 0);
 	
 	RendererCore::Get()->GetDeviceContext()->DrawIndexed(nLineModelIndices, 0, 0);
-	//RendererCore::Get()->GetDeviceContext()->Draw(allFrameData[curFrame].vertexData.size(), 0);
 }
 
 #include <time.h>
@@ -585,8 +698,6 @@ GeneticAlgorithm::~GeneticAlgorithm(){
 	if (pBBoxIndices) pBBoxIndices->Release();
 	if (pLineModelIndices) pLineModelIndices->Release();
 
-	/*for (int i = 0; i < breed.size(); i++)
-		delete breed[i];*/
 	std::map<float, Data*>::iterator cur, end;
 	cur = breed.begin();
 	end = breed.end();
@@ -599,37 +710,68 @@ GeneticAlgorithm::~GeneticAlgorithm(){
 	breed.clear();
 }
 
-/*void GeneticAlgorithm::Mutation(float likelihoodMutation) {
-	vector<Data*> tmp(0);
-	vector<float> tmpKeys(0);
+bool GeneticAlgorithm::SaveAll() {
+	if (nIter != -1) {
+		delete allFrameData[curFrame].bestSkeleton;
+		allFrameData[curFrame].bestSkeleton = new Skeleton((*breed.begin()).second->individ, true, DirectX::XMFLOAT3{ 0.9f, 0.8f, 0.2f });
+	}
+	std::ofstream file;
+	file.open(sFileName, std::ios::out | std::ios::binary);
+	if (file.fail())
+		return false;
+	int nCaps = allFrameData[0].bestSkeleton->GetCapsCount();
+	sHeader h = sHeader{ (int)allFrameData.size(), nCaps, (int)sizeof(stCapsule) };
+	file.write((char*)&h, sizeof(sHeader));
 
-	for (const auto& elem : breed) {
-	if ((float)(rand() % 101) < likelihoodMutation) {
-	tmp.push_back(elem.second);
-	tmpKeys.push_back(elem.first);
+	stCapsule * pCaps = new stCapsule[nCaps];
+	for (int i = 0; i < h.nFrames; i++) {
+		allFrameData[i].bestSkeleton->GetSkeletStruct(&pCaps);
+		file.write((char*)pCaps, nCaps * sizeof(stCapsule));
 	}
-	}
+	delete [] pCaps;
 
-	for (int i = 0; i < tmp.size(); i++) {
-	breed.erase(tmpKeys[i]);
+	file.close();
+	hasSkeletonFile = true;
+
+	return true;
+}
+
+bool GeneticAlgorithm::Save() {
+	/*if (!hasSkeletonFile) {
+		return SaveAll();
 	}
-	int level = 2;
-	int n = 0;
-	if ((*breed.begin()).first > LEVEL_MUTATION0) {
-	level = 0;
+	int nCaps = allFrameData[0].bestSkeleton->GetCapsCount();
+	unsigned int shift = sizeof(sHeader) + curFrame*nCaps*(int)sizeof(stCapsule);
+
+	std::ifstream file1;
+	file1.open(sFileName, std::ios::in | std::ios::binary);
+	if (file1.fail())
+		return false;
+	unsigned int size = (allFrameData.size() - curFrame)*nCaps*(int)sizeof(stCapsule);
+	char* buffer = new char[(allFrameData.size() - curFrame)*nCaps*(int)sizeof(stCapsule)];
+	file1.seekg(shift, std::ios::beg);
+	file1.read((char *)buffer, size);
+	file1.close();
+
+	std::ofstream file;
+	file.open(sFileName, std::ios::out | std::ios::binary);
+	if (file.fail())
+		return false;
+
+	file.seekp(shift, std::ios::beg);
+	
+	/*stCapsule * pCaps = new stCapsule[nCaps];
+	if (nIter != -1) {
+		delete allFrameData[curFrame].bestSkeleton;
+		allFrameData[curFrame].bestSkeleton = new Skeleton((*breed.begin()).second->individ, true, DirectX::XMFLOAT3{ 0.9f, 0.8f, 0.2f });
 	}
-	else {
-	if ((*breed.begin()).first > LEVEL_MUTATION1) {
-	n = rand() % 14;
-	level = 1;
-	}
-	else {
-	n = rand() % 125;
-	level = 2;
-	}
-	}
-	for (int i = 0; i < tmp.size(); i++) {
-	tmp[i]->individ->Mutation(level, n);
-	breed.insert({ Distance(tmp[i]->individ), tmp[i] });
-	}
-}*/
+	allFrameData[curFrame].bestSkeleton->GetSkeletStruct(&pCaps);
+	file.write((char*)pCaps, nCaps * sizeof(stCapsule));
+	delete[] pCaps;*//*
+	file.write(buffer, size);
+
+	delete buffer;
+	file.close();
+	return true;*/
+	return true;
+}

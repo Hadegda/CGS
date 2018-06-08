@@ -169,7 +169,7 @@ void Renderer::Draw() {
 	if (isPlaying) {
 		ULONGLONG timeCur = GetTickCount64();
 		if (timeCur % 8 == 0)
-			ga->Optimize(false);
+			ga->Optimize();
 	}
 
 	RendererCore::Get()->GetDeviceContext()->ClearRenderTargetView(RendererCore::Get()->GetRenderTargetView(), ClearColor);

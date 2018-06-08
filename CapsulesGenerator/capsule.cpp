@@ -6,6 +6,7 @@ using namespace DirectX;
 
 int const Capsule::nVertSeg = 16;
 int const Capsule::nUpHalfSeg = 12;
+unsigned long Capsule::num = 0;
 
 std::vector<float> Capsule::xCoords;
 std::vector<float> Capsule::zCoords;
@@ -23,8 +24,11 @@ Capsule::Capsule(DirectX::XMFLOAT3 color)
 
 	this->color = color;
 
-	if (!wasStaticInit)
+	if (!wasStaticInit) {
 		InitStatic();
+	}
+	thisNum = num;
+	num++;
 }
 
 Capsule::Capsule(Capsule * cap, DirectX::XMFLOAT3 color)
@@ -33,10 +37,31 @@ Capsule::Capsule(Capsule * cap, DirectX::XMFLOAT3 color)
 	pCapsIndices = NULL;
 	pCapsCBuffer = NULL;
 
-	Init(cap->p0, cap->p1, XMFLOAT3(-1.0f, 0.0f, 0.0f));
+	if (!wasStaticInit)
+		InitStatic();
+
+	thisNum = num;
+	num++;
+
+	Init(cap->p0, cap->p1, 0, XMFLOAT3(-1.0f, 0.0f, 0.0f));
 }
 
-bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
+Capsule::Capsule(stCapsule * cap, DirectX::XMFLOAT3 color)
+{
+	pCapsVertices = NULL;
+	pCapsIndices = NULL;
+	pCapsCBuffer = NULL;
+
+	if (!wasStaticInit)
+		InitStatic();
+
+	thisNum = num;
+	num++;
+
+	Init(XMFLOAT4{cap->a0, cap->a1, cap->a2, cap->r}, XMFLOAT4{cap->b0, cap->b1, cap->b2, cap->r}, 1, XMFLOAT3(-1.0f, 0.0f, 0.0f));
+}
+
+bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, int from, XMFLOAT3 color)
 {
 	this->p0 = p0;
 	this->p1 = p1;
@@ -72,8 +97,13 @@ bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
 	hr = RendererCore::Get()->GetDevice()->CreateBuffer(&bd, &InitData, &pCapsVertices);
 	if (FAILED(hr))
 		return false;
-	CopyNameToDebugObjectName(pCapsVertices);
-
+	if (from == 0)
+		CopyResNameToDebugObjectName(pCapsVertices, "89");
+	else
+		if (from == 1)
+			CopyResNameToDebugObjectName(pCapsVertices, "44449");
+		else
+			CopyResNameToDebugObjectName(pCapsVertices, "444444449");
 
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(WORD) * indices.size();
@@ -83,7 +113,13 @@ bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
 	hr = RendererCore::Get()->GetDevice()->CreateBuffer(&bd, &InitData, &pCapsIndices);
 	if (FAILED(hr))
 		return false;
-	CopyNameToDebugObjectName(pCapsIndices);
+	if (from == 0)
+		CopyResNameToDebugObjectName(pCapsIndices, "88");
+	else
+		if (from == 1)
+			CopyResNameToDebugObjectName(pCapsIndices, "44448");
+		else
+			CopyResNameToDebugObjectName(pCapsIndices, "444444448");
 
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(cbCapsule);
@@ -92,7 +128,13 @@ bool Capsule::Init(XMFLOAT4 p0, XMFLOAT4 p1, XMFLOAT3 color)
 	hr = RendererCore::Get()->GetDevice()->CreateBuffer(&bd, NULL, &pCapsCBuffer);
 	if (FAILED(hr))
 		return false;
-	CopyNameToDebugObjectName(pCapsCBuffer);
+	if (from == 0)
+		CopyResNameToDebugObjectName(pCapsCBuffer, "80");
+	else
+		if (from == 1)
+			CopyResNameToDebugObjectName(pCapsCBuffer, "44440");
+		else
+			CopyResNameToDebugObjectName(pCapsCBuffer, "444444440");
 
 	return true;
 }
@@ -271,6 +313,11 @@ float Capsule::GetVolume()
 	float length = Float3Length(dir);
 
 	return SphereVolume(p0.w) + CylinderVolume(p0.w, length);
+}
+
+
+stCapsule Capsule::GetCapsule() {
+	return stCapsule{ p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p0.w };
 }
 
 float Capsule::DistanceToPoint(DirectX::XMFLOAT3 p)

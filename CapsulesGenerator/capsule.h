@@ -22,14 +22,20 @@ struct cbCapsule
 	DirectX::XMFLOAT4 color;
 };
 
+struct stCapsule {
+	float a0, a1, a2;
+	float b0, b1, b2;
+	float r;
+};
+
 class Capsule {
 public:
-	//bool Init(float r1/*, float r2*/, float length, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{-1.0f, -1.0f, -1.0f});
-	bool Init(DirectX::XMFLOAT4 p0, DirectX::XMFLOAT4 p1, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{ -1.0f, 0.0f, 0.0f });
+	bool Init(DirectX::XMFLOAT4 p0, DirectX::XMFLOAT4 p1, int from, DirectX::XMFLOAT3 color = DirectX::XMFLOAT3{ -1.0f, 0.0f, 0.0f });
 	static void InitStatic();
 	void DrawCaps(DirectX::XMFLOAT4X4 mWorld, float light, float transparency, int nCapsule = -1);
 
 	float GetVolume();
+	stCapsule GetCapsule();
 	float DistanceToPoint(DirectX::XMFLOAT3 p);
 	float DistanceFromAxisToPoint(DirectX::XMFLOAT3 p);
 	float AxialDistanceToPoint(DirectX::XMFLOAT3 p);
@@ -43,6 +49,7 @@ public:
 
 	Capsule(DirectX::XMFLOAT3 color);
 	Capsule(Capsule* cap, DirectX::XMFLOAT3 color);
+	Capsule(stCapsule* cap, DirectX::XMFLOAT3 color);
 	~Capsule();
 
 	DirectX::XMFLOAT4 p0;  //start point; radius
@@ -69,6 +76,8 @@ private:
 	static std::vector<float> projOnXZ;
 
 	static bool wasStaticInit;
+	static unsigned long num;
+	unsigned long thisNum;
 };
 
 #endif

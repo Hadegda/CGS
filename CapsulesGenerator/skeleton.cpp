@@ -1,5 +1,4 @@
 #include "skeleton.h"
-#include <random>
 
 using namespace DirectX;
 
@@ -18,7 +17,7 @@ float Skeleton::Distance(std::vector<UINT>* vertexClasters, float volume) {
 		skeletonVolume += caps[i]->GetVolume();
 	}
 
-	distance += 20 * abs(volume - skeletonVolume) / volume;
+	distance += 20 * (abs(volume - skeletonVolume) / volume)*(abs(volume - skeletonVolume) / volume);
 
 	/*float distance = 1.0f;
 	std::vector<float> dist(caps.size());
@@ -262,17 +261,14 @@ void Skeleton::Mutation(int level, int n) {
 }
 
 void Skeleton::MutationAll() {
-	std::default_random_engine generator;
-	std::normal_distribution<float> distribution(1.0f, 1.0f);
-
 	for (int n = 0; n < 125; n++) {
 		if (n % 9 == 6 || n % 9 == 7 || (n > 9 && n % 9 == 2)) {
-			float val = (float)((float)rand() / RAND_MAX) * 2.0f;
+			float val = (float)((float)rand() / RAND_MAX) * 1.5f + 0.5;
 			parameters[n] = val * parameters[n];
 		}
 		else {
 			float val = (float)((float)rand() / RAND_MAX) * 2.0f;
-			parameters[n] = parameters[n] + (val - 1.0f) / 2.0f;//  * (val*2.0f - 2.0f); //(val - 1.0f);// * *(parameters[n]);
+			parameters[n] = parameters[n] * (val - 1.0f);//  * (val*2.0f - 2.0f); //(val - 1.0f);// * *(parameters[n]);
 		}
 	}
 }
@@ -280,39 +276,39 @@ void Skeleton::MutationAll() {
 void Skeleton::OneGenMutation(int n)
 {
  	if (n % 9 == 6 || n % 9 == 7 || (n > 9 && n % 9 == 2)) {
-		float val = (float)((float)rand() / RAND_MAX) * 2.0f;
+		float val = (float)((float)rand() / RAND_MAX) * 1.5f + 0.5;
 		parameters[n] = val * parameters[n];
 	}
 	else {
 		float val = (float)((float)rand() / RAND_MAX) * 2.0f;
-		parameters[n] = parameters[n] + (val - 1.0f) / 2.0f;// *(val*2.0f - 2.0f); // * *(parameters[n]);
+		parameters[n] = parameters[n] * (val - 1.0f);// *(val*2.0f - 2.0f); // * *(parameters[n]);
 	}
 }
 
 void Skeleton::OneCapsuleMutation(int n)
 {
   	if (n == 0) {
-		parameters[0] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[0];
-		parameters[1] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[1];
-		parameters[2] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[2];
+		parameters[0] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[0];
+		parameters[1] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[1];
+		parameters[2] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[2];
 
-		parameters[3] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f + parameters[6];
-		parameters[4] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f + parameters[7];
-		parameters[5] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f + parameters[8];
-		parameters[6] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[6];
-		parameters[7] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[7];
+		parameters[3] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[6];
+		parameters[4] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[7];
+		parameters[5] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[8];
+		parameters[6] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[6];
+		parameters[7] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[7];
 	}
 	else {
-		parameters[9 * n - 1] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f + parameters[9 * n - 1];
-		parameters[9 * n + 0] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f + parameters[9 * n - 0];
-		parameters[9 * n + 1] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f + parameters[9 * n + 1];
-		parameters[9 * n + 2] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[9 * n + 2];
+		parameters[9 * n - 1] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[9 * n - 1];
+		parameters[9 * n + 0] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[9 * n - 0];
+		parameters[9 * n + 1] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[9 * n + 1];
+		parameters[9 * n + 2] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[9 * n + 2];
 
-		parameters[9 * n + 3] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f +  parameters[9 * n + 3];
-		parameters[9 * n + 4] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f +  parameters[9 * n + 4];
-		parameters[9 * n + 5] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) / 2.0f +  parameters[9 * n + 5];
-		parameters[9 * n + 6] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[9 * n + 6];
-		parameters[9 * n + 7] = (float)((float)rand() / RAND_MAX) * 2.0f * parameters[9 * n + 7];
+		parameters[9 * n + 3] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[9 * n + 3];
+		parameters[9 * n + 4] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[9 * n + 4];
+		parameters[9 * n + 5] = ((float)((float)rand() / RAND_MAX) * 2.0f - 1.0f) * parameters[9 * n + 5];
+		parameters[9 * n + 6] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[9 * n + 6];
+		parameters[9 * n + 7] = ((float)((float)rand() / RAND_MAX) * 1.5f + 0.5) * parameters[9 * n + 7];
 	}
 }
 
@@ -419,16 +415,60 @@ Skeleton::Skeleton(PersonPattern* homo, std::vector<DirectX::XMFLOAT3> vertices,
 	}
 }
 
+Skeleton::Skeleton(stCapsule* pCaps, int nCaps, std::vector<DirectX::XMFLOAT3> vertices, std::vector<UINT32> lineModelIndices, DirectX::XMFLOAT3 color)
+{
+	this->color = color;
+
+	caps.clear();
+	caps.resize(nCaps);
+	for (int i = 0; i < caps.size(); i++)
+		caps[i] = new Capsule(&(pCaps[i]), color);
+	
+	parameters.clear();
+	parameters.resize(nCaps * 9 - 1);
+	UpdateForNewCapsules();
+
+	this->vertices.clear();
+	this->vertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++)
+		this->vertices[i] = vertices[i];
+
+	lineList.clear();
+	lineList.resize(lineModelIndices.size());
+	for (int i = 0; i < lineModelIndices.size(); i++)
+		lineList[i] = lineModelIndices[i];
+
+	capsForVertices.clear();
+	capsForVertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); i++) {
+		capsForVertices[i].clear();
+	}
+	DistributeVertices();
+
+	verticesForCaps.clear();
+	verticesForCaps.resize(caps.size());
+	for (int i = 0; i < caps.size(); i++) {
+		verticesForCaps[i].clear();
+	}
+	for (int i = 0; i < vertices.size(); i++) {
+		verticesForCaps[(*capsForVertices[i].begin()).second].push_back((UINT)i);
+	}
+}
+
 Skeleton::Skeleton(Skeleton * parent0, Skeleton * parent1, DirectX::XMFLOAT3 color)
 {
 	this->color = color;
 
-	std::default_random_engine generator;
-	std::normal_distribution<float> distribution(0.5f, 0.25f);
+	std::random_device randomDevice;
+	std::mt19937 generator(randomDevice());
+	std::normal_distribution<float> distribution(0.5f, 1.0f / 6.0f);
+
+
 	parameters.clear();
 	parameters.resize(parent0->parameters.size());
+	float val = 0.0f;
 	for (int i = 0; i < parent0->parameters.size(); i++) {
-		float val = distribution(generator);
+		val = distribution(generator);
 		parameters[i] = val * (parent0->parameters[i]) + (1.0f - val) * (parent1->parameters[i]);
 	}
 
@@ -527,6 +567,14 @@ float Skeleton::GetVolume() {
  	return volume;
 }
 
+void Skeleton::GetSkeletStruct(stCapsule ** pCapsule)
+{
+	if (*pCapsule == nullptr)
+		(*pCapsule) = new stCapsule[caps.size()];
+	for (int i = 0; i < caps.size(); i++)
+		(*pCapsule)[i] = caps[i]->GetCapsule();
+}
+
 void Skeleton::UpdateOneCapsule(DirectX::XMFLOAT4* cCur, DirectX::XMFLOAT4 cPrev, int nFirstParam, bool isShiftInterpret) {
 	float length = sqrt(parameters[nFirstParam] * parameters[nFirstParam] + parameters[nFirstParam+1] * parameters[nFirstParam+1] + parameters[nFirstParam+2] * parameters[nFirstParam+2]);
 	cCur->x = cPrev.x + parameters[nFirstParam+0] * parameters[nFirstParam+3] / length;
@@ -547,7 +595,7 @@ void Skeleton::UpdateForNewParameters()
 	p0.w = parameters[7];
 
 	UpdateOneCapsule(&p1, p0, 3, false);
-	caps[0]->Init(p0, p1);
+	caps[0]->Init(p0, p1, 2);
 	
 	for (int i = 1, k = 8; i < 13; i++, k +=9 ) {
 		if(i == 1 || i == 4)  //begin legs
@@ -559,13 +607,13 @@ void Skeleton::UpdateForNewParameters()
 				UpdateOneCapsule(&p0, caps[i - 1]->p1, k, true);
 		}
 		UpdateOneCapsule(&p1, p0, k+4, false);
-		caps[i]->Init(p0, p1);
+		caps[i]->Init(p0, p1, 2);
 	}
 
 	//head
 	UpdateOneCapsule(&p0, caps[0]->p1, 116, true);
 	UpdateOneCapsule(&p1, p0, 120, false);
-	caps[13]->Init(p0, p1);
+	caps[13]->Init(p0, p1, 2);
 	return;
 	}
 

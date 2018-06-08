@@ -45,7 +45,7 @@ bool Window::Init(HINSTANCE hInstance, WNDPROC wndProc, int nCmdShow) noexcept
 void Window::Handler(UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam) {
-	case 10:
+	case 20:
 		if (RendererCore::Get()->GetRenderer().GetModel()) {
 			if (IDNO == MessageBox(NULL, L"You have open model.\nDo you want to close it and open another?", L"Warning", MB_YESNO))
 				break;
@@ -54,7 +54,7 @@ void Window::Handler(UINT message, WPARAM wParam, LPARAM lParam)
 		file.lpstrTitle = _T("Open File");
 		file.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
 		if (!GetOpenFileName(&file)) {
-			if(CommDlgExtendedError())
+			if (CommDlgExtendedError())
 				MessageBox(NULL, L"Error open file", L"Error", MB_OK);
 			break;
 		}
@@ -62,9 +62,18 @@ void Window::Handler(UINT message, WPARAM wParam, LPARAM lParam)
 			MessageBox(NULL, L"Error load model", L"ERROR", MB_OK);
 		break;
 
-	case 11:
+	case 21:
 		if (!RendererCore::Get()->GetRenderer().UnloadModel())
 			MessageBox(NULL, L"You have no open models", L"Error", MB_OK);
+		break;
+
+	case 10:
+		if(!RendererCore::Get()->GetRenderer().GetGA()->SaveAll())
+			MessageBox(NULL, L"Error saving", L"Error", MB_OK);
+		break;
+	case 11:
+		if (!RendererCore::Get()->GetRenderer().GetGA()->Save())
+			MessageBox(NULL, L"Error saving", L"Error", MB_OK);
 		break;
 	}
 }
@@ -82,18 +91,23 @@ bool Window::InitMenu() noexcept
 {
 	HMENU hmenu1 = CreateMenu();
 	HMENU hPopMenuFile = CreatePopupMenu();
+	HMENU hPopMenuModel = CreatePopupMenu();
 
-	AppendMenu(hmenu1, MF_STRING, 0, L"&File");
-	AppendMenu(hmenu1, MF_STRING | MF_POPUP, (UINT)hPopMenuFile, L"&Model");
-	AppendMenu(hmenu1, MF_STRING, 2, L"&Capsule");
-	AppendMenu(hmenu1, MF_STRING, 3, L"&Config");
-	AppendMenu(hmenu1, MF_STRING, 4, L"&Help");
+	AppendMenu(hmenu1, MF_STRING | MF_POPUP, (UINT)hPopMenuFile, L"&File");
+	AppendMenu(hmenu1, MF_STRING | MF_POPUP, (UINT)hPopMenuModel, L"&Model");
+	AppendMenu(hmenu1, MF_STRING, 3, L"&Capsule");
+	AppendMenu(hmenu1, MF_STRING, 4, L"&Config");
+	AppendMenu(hmenu1, MF_STRING, 5, L"&Help");
 
-	AppendMenu(hPopMenuFile, MF_STRING, 10, L"Open");
-	AppendMenu(hPopMenuFile, MF_STRING, 11, L"Close");
+	AppendMenu(hPopMenuFile, MF_STRING, 10, L"SaveAll");
+	AppendMenu(hPopMenuFile, MF_STRING, 11, L"Save");
+
+	AppendMenu(hPopMenuModel, MF_STRING, 20, L"Open");
+	AppendMenu(hPopMenuModel, MF_STRING, 21, L"Close");
 
 	SetMenu(hWnd, hmenu1);
 	SetMenu(hWnd, hPopMenuFile);
+	SetMenu(hWnd, hPopMenuModel);
 
 	file.lStructSize = sizeof(OPENFILENAME);
 	file.hInstance = hInst;

@@ -12,7 +12,8 @@
 #define DEAD_PART 0.5f
 #define COUNT_BIRTH_FROM_TWO_PARENTS 20
 #define COUNT_TRIES_BIRTH_FROM_ONE_PARENT 5
-#define COUNT_ITERATIONS 1
+#define COUNT_ITERATIONS_IN_STEP 1
+#define COUNT_ITERATIONS 17
 
 #define LEVEL_MUTATION0 50.0f
 #define LEVEL_MUTATION1 25.5f
@@ -44,12 +45,14 @@ struct Data{
 
 struct GAdataForFrame {
 	GAdataForFrame() { pGenVertices = NULL; pBBoxVertices = NULL;};
-	~GAdataForFrame() { if (pBBoxVertices) pBBoxVertices->Release(); if (pGenVertices) pGenVertices->Release(); };
+	~GAdataForFrame() { if (pBBoxVertices) pBBoxVertices->Release(); if (pGenVertices) pGenVertices->Release(); delete bestSkeleton; };
 
 	std::vector<ga_vertex> vertexData;
 	BoundaredBox bBox;
 	ID3D11Buffer* pGenVertices;
 	ID3D11Buffer* pBBoxVertices;
+
+	Skeleton* bestSkeleton;
 
 	DirectX::XMFLOAT3 center;
 	float volume;
@@ -61,8 +64,9 @@ public:
 	~GeneticAlgorithm();
 	bool InitGeneticAlgorithm(ModelMD2* model);
 	bool InitGeneticAlgorithm(wchar_t* path);
-	void Optimize(bool isItStartGA);
+	void Optimize();
 	void NextOptimize(bool mutationTime);
+	void OptimizeAll();
 
 	void NextFrame();
 	void PrevFrame();
@@ -74,9 +78,13 @@ public:
 	void DrawSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency);
 	void DrawBestSkeleton(DirectX::XMFLOAT4X4 world, float light, float transparency);
 
+	bool SaveAll();
+	bool Save();
+
 private:
 	bool InitGAFrame(daliasframe_t* frame, GAdataForFrame* curFrame, std::vector<DirectX::XMUINT3> tris, const int nVertices);
 
+	void CreateBaseSkeleton();
 	void CreatefirstBreed();
 	void CreateNextBreed(int count, int countOfOneParentsChildsTry, std::vector<Skeleton*> prevBreed, std::vector<float> individSurvival);
 	void Select(float deadPart);
@@ -92,7 +100,17 @@ private:
 
 	std::map<float, Data*> breed;
 
+	bool hasSkeletonFile;
+	std::wstring sFileName;
+
 	int nIter;
+};
+
+
+struct sHeader {
+	int nFrames;
+	int nCaps;
+	int sizeOfcaps;
 };
 
 #endif
